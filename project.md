@@ -17,6 +17,7 @@ build a small Elysia plugin that lints the generated OpenAPI document with Spect
 the plugin must treat Elysia route schemas as the source of truth, run Spectral against the generated OpenAPI document, and expose the results in a way that is useful for local development, CI, and downstream tooling.
 
 the plugin must stay thin:
+
 - no duplicate API contract model
 - no custom spec builder
 - no attempt to replace `@elysiajs/openapi`
@@ -27,6 +28,7 @@ the plugin must stay thin:
 today we can generate OpenAPI from Elysia, but we do not have a first-class way to enforce contract quality from inside the app boundary.
 
 we want:
+
 - one source of truth
 - fast local feedback
 - CI-friendly contract checks
@@ -34,6 +36,7 @@ we want:
 - a clean path to downstream generation such as Bruno / Postman / client SDKs
 
 without this, teams drift into:
+
 - undocumented style issues
 - inconsistent operation metadata
 - weak error model descriptions
@@ -148,13 +151,13 @@ optional failure on threshold
 optional report written to disk
 
 design principles
-	1.	source of truth stays in Elysia schemas
-	2.	linting is read-only
-	3.	local dev ergonomics matter
-	4.	CI output must be deterministic
-	5.	production runtime cost should be near-zero unless explicitly enabled
-	6.	plugin must degrade clearly when misconfigured
-	7.	default behaviour should be safe and unsurprising
+ 1. source of truth stays in Elysia schemas
+ 2. linting is read-only
+ 3. local dev ergonomics matter
+ 4. CI output must be deterministic
+ 5. production runtime cost should be near-zero unless explicitly enabled
+ 6. plugin must degrade clearly when misconfigured
+ 7. default behaviour should be safe and unsurprising
 
 plugin API
 
@@ -163,19 +166,19 @@ v0.1 contract
 this spec defines v0.1 only.
 
 included in v0.1:
-	•	startup lint
-	•	threshold-based startup failure
-	•	ruleset loading from local YAML path or in-memory object
-	•	console summary output
-	•	JSON report output
-  •	optional OpenAPI snapshot output in the consuming app root
+ • startup lint
+ • threshold-based startup failure
+ • ruleset loading from local YAML path or in-memory object
+ • console summary output
+ • JSON report output
+  • optional OpenAPI snapshot output in the consuming app root
 
 deferred beyond v0.1:
-	•	manual lint route
-	•	SARIF output
-	•	JS/TS ruleset loading
-	•	result filtering
-	•	experimental in-process OpenAPI resolution
+ • manual lint route
+ • SARIF output
+ • JS/TS ruleset loading
+ • result filtering
+ • experimental in-process OpenAPI resolution
 
 types
 
@@ -266,8 +269,8 @@ SARIF is deferred beyond v0.1.
 FR-5: ruleset loading
 
 the plugin must support:
-	•	local YAML ruleset path
-	•	direct ruleset object
+ • local YAML ruleset path
+ • direct ruleset object
 
 FR-6: default ruleset
 
@@ -276,11 +279,11 @@ if no ruleset is provided, the plugin should use a minimal default based on Spec
 FR-7: clear diagnostics
 
 output must include:
-	•	finding count by severity
-	•	rule code
-	•	JSONPath / pointer
-	•	human-readable message
-	•	path + method when derivable
+ • finding count by severity
+ • rule code
+ • JSONPath / pointer
+ • human-readable message
+ • path + method when derivable
 
 FR-8: reusable core engine
 
@@ -325,21 +328,21 @@ interface SpecProvider {
 }
 
 ship in v0.1:
-  •	PublicSpecProvider
+  • PublicSpecProvider
 
 behavior:
-  •	use the configured specPath, or the OpenAPI plugin default path
-  •	use Elysia's public app.handle(Request) API to request the OpenAPI JSON endpoint in-process
-  •	synthesize a fully qualified local URL such as http://localhost${specPath} for the Request object
-  •	use loopback HTTP only as a fallback if an adapter-specific runtime prevents app.handle from reaching the generated route as expected
-  •	fail clearly if the public spec endpoint cannot be resolved
+  • use the configured specPath, or the OpenAPI plugin default path
+  • use Elysia's public app.handle(Request) API to request the OpenAPI JSON endpoint in-process
+  • synthesize a fully qualified local URL such as http://localhost${specPath} for the Request object
+  • use loopback HTTP only as a fallback if an adapter-specific runtime prevents app.handle from reaching the generated route as expected
+  • fail clearly if the public spec endpoint cannot be resolved
 
 deferred beyond v0.1:
-  •	InProcessSpecProvider backed by private plugin internals
-  •	AutoSpecProvider that switches strategies implicitly
+  • InProcessSpecProvider backed by private plugin internals
+  • AutoSpecProvider that switches strategies implicitly
 
 non-goal for v0.1:
-  •	probing Elysia or @elysiajs/openapi internals to discover undocumented state
+  • probing Elysia or @elysiajs/openapi internals to discover undocumented state
 
 result model
 
@@ -384,14 +387,14 @@ v1 should be conservative.
 prefer high-signal rules that improve docs and client generation without causing revolt.
 
 candidate defaults:
-	•	operation must have summary
-	•	operationId should exist
-	•	tags should exist
-	•	error responses should be documented
-	•	path params must match template params
-	•	examples encouraged but not mandatory
-	•	no empty descriptions where present
-	•	servers block optional depending on deployment style
+ • operation must have summary
+ • operationId should exist
+ • tags should exist
+ • error responses should be documented
+ • path params must match template params
+ • examples encouraged but not mandatory
+ • no empty descriptions where present
+ • servers block optional depending on deployment style
 
 do not enable noisy style rules by default unless they are clearly valuable.
 
@@ -414,37 +417,37 @@ the same lint engine must be invokable directly from tests and CI without bootin
 error handling
 
 misconfiguration cases
-  1.	public OpenAPI endpoint not available
-	•	fail fast with a clear message
-	2.	ruleset path not found
-	•	fail fast during startup
-	3.	spec could not be resolved
-	•	fail with provider-specific detail
-	4.	report path unwritable
-	•	configurable:
-	•	warn only by default
-	•	optional strict mode later
-	5.	spectral internal error
-	•	fail clearly with underlying message preserved
+  1. public OpenAPI endpoint not available
+ • fail fast with a clear message
+ 2. ruleset path not found
+ • fail fast during startup
+ 3. spec could not be resolved
+ • fail with provider-specific detail
+ 4. report path unwritable
+ • configurable:
+ • warn only by default
+ • optional strict mode later
+ 5. spectral internal error
+ • fail clearly with underlying message preserved
 
 observability
 
 the plugin should emit a small amount of structured log data:
-	•	lint start
-	•	lint complete
-	•	counts by severity
-	•	report path written
-	•	startup blocked due to threshold
+ • lint start
+ • lint complete
+ • counts by severity
+ • report path written
+ • startup blocked due to threshold
 
 optional later:
-	•	span around lint execution if OpenTelemetry is present
+ • span around lint execution if OpenTelemetry is present
 
 security considerations
-	1.	do not expose lint routes in production by default
-	2.	do not fetch arbitrary remote specs
-  3.	write reports only to explicit configured output paths, except for the explicit opt-in `specSnapshotPath: true` mode which may derive a host-root filename from the consuming app package name
-	4.	avoid leaking secrets through logged examples or server URLs
-	5.	ensure loopback HTTP fallback cannot be abused as SSRF
+ 1. do not expose lint routes in production by default
+ 2. do not fetch arbitrary remote specs
+  3. write reports only to explicit configured output paths, except for the explicit opt-in `specSnapshotPath: true` mode which may derive a host-root filename from the consuming app package name
+ 4. avoid leaking secrets through logged examples or server URLs
+ 5. ensure loopback HTTP fallback cannot be abused as SSRF
 
 packaging
 
@@ -452,10 +455,10 @@ package name:
 @your-scope/elysia-spectral
 
 entry points:
-	•	runtime plugin
-	•	formatter helpers
-	•	core lint engine
-	•	optional CLI wrapper later
+ • runtime plugin
+ • formatter helpers
+ • core lint engine
+ • optional CLI wrapper later
 
 suggested layout:
 
@@ -488,56 +491,56 @@ implementation plan
 milestone 1 — v0.1 core
 
 deliver:
-	•	plugin options
-	•	startup lint
-  •	ruleset loading from local YAML path or in-memory object
-  •	public OpenAPI document resolution
-  •	shared core lint engine
-	•	JSON report
-  •	optional OpenAPI snapshot artifact
-	•	console summary
-	•	threshold failure
+ • plugin options
+ • startup lint
+  • ruleset loading from local YAML path or in-memory object
+  • public OpenAPI document resolution
+  • shared core lint engine
+ • JSON report
+  • optional OpenAPI snapshot artifact
+ • console summary
+ • threshold failure
 
 done when:
-	•	service fails startup on errors when configured
-	•	service writes openapi-lint.json
-  •	service can optionally write <package-name>.open-api.json in the consuming app root
-  •	CI and tests can invoke the same core lint engine directly
-	•	unit and integration tests pass
+ • service fails startup on errors when configured
+ • service writes openapi-lint.json
+  • service can optionally write <package-name>.open-api.json in the consuming app root
+  • CI and tests can invoke the same core lint engine directly
+ • unit and integration tests pass
 
 post-v0.1 roadmap
 
 dev ergonomics:
-	•	dev lint route
-	•	cached latest results
-	•	pretty formatter
-	•	better mapping from finding path to operation
+ • dev lint route
+ • cached latest results
+ • pretty formatter
+ • better mapping from finding path to operation
 
 CI and ecosystem:
-	•	SARIF output
-	•	tiny CLI wrapper reusing the same core
-	•	documented example pipeline:
-	•	generate / resolve spec
-	•	lint
-	•	generate Bruno collection only if lint passes
+ • SARIF output
+ • tiny CLI wrapper reusing the same core
+ • documented example pipeline:
+ • generate / resolve spec
+ • lint
+ • generate Bruno collection only if lint passes
 
 testing strategy
 
 unit tests
-	1.	severity threshold logic
-	2.	ruleset resolution
-	3.	finding normalization
-	4.	console formatter output
-	5.	JSON report generation
-  6.	public spec provider behavior
-  7.	spec snapshot generation
+ 1. severity threshold logic
+ 2. ruleset resolution
+ 3. finding normalization
+ 4. console formatter output
+ 5. JSON report generation
+  6. public spec provider behavior
+  7. spec snapshot generation
 
 integration tests
-	1.	Elysia app with openapi plugin and valid routes passes
-	2.	app with intentionally bad metadata fails on configured threshold
-  3.	configured public spec endpoint resolves successfully
-  4.	missing baseUrl yields a clear error when loopback HTTP is required
-	5.	missing openapi plugin yields clear error
+ 1. Elysia app with openapi plugin and valid routes passes
+ 2. app with intentionally bad metadata fails on configured threshold
+  3. configured public spec endpoint resolves successfully
+  4. missing baseUrl yields a clear error when loopback HTTP is required
+ 5. missing openapi plugin yields clear error
 
 fixture tests
 
@@ -549,8 +552,8 @@ target flow:
 
 typecheck
 -> test
-	-> boot app or resolve spec through the public OpenAPI document
-	-> spectral lint via the shared core engine
+ -> boot app or resolve spec through the public OpenAPI document
+ -> spectral lint via the shared core engine
 -> fail on threshold
 -> if pass, generate Bruno / Postman artifacts
 
@@ -567,37 +570,37 @@ contract rule:
 generated collections are derived artifacts, never source of truth.
 
 acceptance criteria
-	1.	plugin works with an Elysia app already using @elysiajs/openapi
-  2.	startup lint runs successfully against the generated public OpenAPI document fetched through Elysia's public app.handle(Request) API
-	3.	configurable failOn blocks startup as expected
-  4.	custom YAML ruleset file or imported ruleset object is supported
-	5.	JSON report is generated when configured
-  6.	OpenAPI snapshot output is generated when configured
-  7.	missing public OpenAPI setup produces a clear failure
-  8.	tests cover happy path and failure path
-  9.	docs include setup, options, and CI usage
-  10.	core lint logic is reusable from CI and tests without booting a server
-  11.	implementation remains thin and does not duplicate OpenAPI generation logic
+ 1. plugin works with an Elysia app already using @elysiajs/openapi
+  2. startup lint runs successfully against the generated public OpenAPI document fetched through Elysia's public app.handle(Request) API
+ 3. configurable failOn blocks startup as expected
+  4. custom YAML ruleset file or imported ruleset object is supported
+ 5. JSON report is generated when configured
+  6. OpenAPI snapshot output is generated when configured
+  7. missing public OpenAPI setup produces a clear failure
+  8. tests cover happy path and failure path
+  9. docs include setup, options, and CI usage
+  10. core lint logic is reusable from CI and tests without booting a server
+  11. implementation remains thin and does not duplicate OpenAPI generation logic
 
 resolved decisions
-	1.	v0.1 ships startup lint only; manual lint routing is deferred
-  2.	v0.1 consumes the public OpenAPI JSON document via Elysia's public app.handle(Request) API and does not depend on private plugin internals
-	3.	v0.1 ships a modest default ruleset
-  4.	v0.1 ships JSON artifact output for lint findings and optional spec snapshots; SARIF is deferred
-  5.	v0.1 keeps findings in memory only inside the runtime plugin; persistence is limited to explicit report or snapshot output
+ 1. v0.1 ships startup lint only; manual lint routing is deferred
+  2. v0.1 consumes the public OpenAPI JSON document via Elysia's public app.handle(Request) API and does not depend on private plugin internals
+ 3. v0.1 ships a modest default ruleset
+  4. v0.1 ships JSON artifact output for lint findings and optional spec snapshots; SARIF is deferred
+  5. v0.1 keeps findings in memory only inside the runtime plugin; persistence is limited to explicit report or snapshot output
 
 implementation decisions
-	1.	implement v0.1 only
-	2.	ship a single PublicSpecProvider in v0.1
-	3.	include JSON report support in v0.1
-  4.	include optional spec snapshot support in v0.1
-  5.	leave SARIF, dev route, and JS/TS ruleset loading for later
-  6.	keep the default ruleset modest and low-noise
-  7.	write docs with examples for:
-	•	startup-only
-	•	startup + JSON report
-  •	startup + package-name-derived OpenAPI snapshot
-	•	CI script using the shared core engine
+ 1. implement v0.1 only
+ 2. ship a single PublicSpecProvider in v0.1
+ 3. include JSON report support in v0.1
+  4. include optional spec snapshot support in v0.1
+  5. leave SARIF, dev route, and JS/TS ruleset loading for later
+  6. keep the default ruleset modest and low-noise
+  7. write docs with examples for:
+ • startup-only
+ • startup + JSON report
+  • startup + package-name-derived OpenAPI snapshot
+ • CI script using the shared core engine
 
 example pseudocode
 
@@ -644,23 +647,23 @@ handoff notes for codex
 build this as a thin, composable package.
 
 priority order:
-	1.	correctness
-	2.	clarity
-	3.	low coupling
-	4.	good errors
-	5.	nice formatting
+ 1. correctness
+ 2. clarity
+ 3. low coupling
+ 4. good errors
+ 5. nice formatting
 
 avoid:
-	•	giant abstractions
-	•	hidden magic
-	•	deep reflection over private internals unless wrapped carefully
-	•	coupling to Bruno or Postman in the runtime plugin
+ • giant abstractions
+ • hidden magic
+ • deep reflection over private internals unless wrapped carefully
+ • coupling to Bruno or Postman in the runtime plugin
 
 deliverables expected from codex:
-	1.	package scaffold
-	2.	runtime plugin
-	3.	core lint engine
-	4.	one integration example app
-	5.	tests
-	6.	README
-	7.	sample spectral.yaml
+ 1. package scaffold
+ 2. runtime plugin
+ 3. core lint engine
+ 4. one integration example app
+ 5. tests
+ 6. README
+ 7. sample spectral.yaml

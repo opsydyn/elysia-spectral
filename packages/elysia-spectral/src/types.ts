@@ -39,6 +39,7 @@ export type LintFinding = {
   severity: LintSeverity;
   path: Array<string | number>;
   documentPointer?: string;
+  recommendation?: string;
   source?: string;
   range?: {
     start?: { line: number; character: number };
@@ -60,6 +61,10 @@ export type LintRunResult = {
     info: number;
     hint: number;
     total: number;
+  };
+  artifacts?: {
+    jsonReportPath?: string;
+    specSnapshotPath?: string;
   };
   findings: LintFinding[];
 };

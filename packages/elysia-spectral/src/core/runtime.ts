@@ -23,6 +23,8 @@ export const createOpenApiLintRuntime = (
 
       const provider = new PublicSpecProvider(app, options.source);
       const spec = (await provider.getSpec()) as Record<string, unknown>;
+      let snapshotPath: string | undefined;
+      let reportPath: string | undefined;
 
       if (options.output?.specSnapshotPath) {
         try {
@@ -30,7 +32,7 @@ export const createOpenApiLintRuntime = (
             options.output.specSnapshotPath === true
               ? await resolveDefaultSpecSnapshotPath()
               : options.output.specSnapshotPath;
-          const snapshotPath = await writeSpecSnapshot(
+          snapshotPath = await writeSpecSnapshot(
             snapshotTarget,
             spec,
             options.output.pretty !== false,
@@ -45,12 +47,17 @@ export const createOpenApiLintRuntime = (
 
       const ruleset = await loadRuleset(options.ruleset);
       const result = await lintOpenApi(spec, ruleset);
+      if (snapshotPath) {
+        result.artifacts = {
+          specSnapshotPath: snapshotPath,
+        };
+      }
 
       runtime.latest = result;
 
       if (options.output?.jsonReportPath) {
         try {
-          const reportPath = await writeJsonReport(
+          reportPath = await writeJsonReport(
             options.output.jsonReportPath,
             result,
             options.output.pretty !== false,
@@ -61,6 +68,13 @@ export const createOpenApiLintRuntime = (
             `OpenAPI lint could not write JSON report: ${error instanceof Error ? error.message : String(error)}`,
           );
         }
+      }
+
+      if (reportPath) {
+        result.artifacts = {
+          ...result.artifacts,
+          jsonReportPath: reportPath,
+        };
       }
 
       if (options.output?.console !== false) {

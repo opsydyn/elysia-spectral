@@ -51,6 +51,13 @@ That example app keeps startup lint disabled so it can boot with a broken route.
 - `./artifacts/openapi-lint-unhappy.json` for the failing JSON report
 - `./elysia-spectral-dev-app.open-api.json` for the generated OpenAPI document snapshot
 
+`bun run dev:unhappy` also performs one fresh lint automatically after boot and prints:
+
+- the exact failing rule code
+- the affected operation
+- a concrete fix hint for the route definition
+- a spec snapshot reference in `open-api.json#/json/pointer` form
+
 ## Usage
 
 ```ts

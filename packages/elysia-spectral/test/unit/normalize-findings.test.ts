@@ -3,8 +3,8 @@ import type { ISpectralDiagnostic } from '@stoplight/spectral-core';
 import { normalizeFindings } from '../../src/core/normalize-findings';
 
 const diagnostic: ISpectralDiagnostic = {
-  code: 'sample-rule',
-  message: 'Missing summary',
+  code: 'operation-description',
+  message: 'Operation "description" must be present and non-empty string.',
   path: ['paths', '/users', 'get', 'summary'],
   severity: 1,
   range: {
@@ -34,5 +34,8 @@ describe('normalizeFindings', () => {
       path: '/users',
       operationId: 'listUsers',
     });
+    expect(result.findings[0]?.recommendation).toBe(
+      'Add detail.description with a short user-facing explanation of what the route does.',
+    );
   });
 });

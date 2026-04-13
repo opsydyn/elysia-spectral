@@ -1,5 +1,6 @@
 import type { ISpectralDiagnostic } from '@stoplight/spectral-core';
 import type { LintFinding, LintRunResult, LintSeverity } from '../types';
+import { getFindingRecommendation } from './finding-guidance';
 
 const httpMethods = new Set([
   'get',
@@ -55,6 +56,14 @@ const normalizeFinding = (
     path,
     documentPointer: toDocumentPointer(path),
   };
+
+  const recommendation = getFindingRecommendation(
+    String(diagnostic.code),
+    diagnostic.message,
+  );
+  if (recommendation) {
+    finding.recommendation = recommendation;
+  }
 
   if (diagnostic.source !== undefined) {
     finding.source = diagnostic.source;

@@ -123,7 +123,7 @@ describe('createOpenApiLintRuntime', () => {
     });
 
     try {
-      await runtime.run(app);
+      const result = await runtime.run(app);
 
       const snapshot = JSON.parse(
         await readFile(resolvedSnapshotPath, 'utf8'),
@@ -136,6 +136,7 @@ describe('createOpenApiLintRuntime', () => {
       expect(snapshot.openapi.startsWith('3.')).toBe(true);
       expect(snapshot.info.title).toBe('Runtime Snapshot API');
       expect(snapshot.paths['/users']).toBeDefined();
+      expect(result.artifacts?.specSnapshotPath).toBe(resolvedSnapshotPath);
     } finally {
       await rm(path.dirname(resolvedSnapshotPath), {
         recursive: true,
