@@ -1,6 +1,8 @@
-import { readFile } from 'node:fs/promises';
+import { access, readFile } from 'node:fs/promises';
 import path from 'node:path';
+import { pathToFileURL } from 'node:url';
 import type { RulesetDefinition } from '@stoplight/spectral-core';
+import type { RulesetFunction, RulesetFunctionWithValidator } from '@stoplight/spectral-core';
 import spectralFunctions from '@stoplight/spectral-functions';
 import spectralRulesets from '@stoplight/spectral-rulesets';
 import YAML from 'yaml';
@@ -40,8 +42,41 @@ const functionMap = {
   xor,
 } as const;
 
+type AvailableFunctionMap = Record<
+  string,
+  RulesetFunction<any, any> | RulesetFunctionWithValidator<any, any>
+>;
+
 const extendsMap: Record<string, RulesetDefinition> = {
   'spectral:oas': oas as unknown as RulesetDefinition,
+};
+
+const autodiscoverRulesetFilenames = [
+  'spectral.yaml',
+  'spectral.yml',
+  'spectral.ts',
+  'spectral.mts',
+  'spectral.cts',
+  'spectral.js',
+  'spectral.mjs',
+  'spectral.cjs',
+  'spectral.config.yaml',
+  'spectral.config.yml',
+  'spectral.config.ts',
+  'spectral.config.mts',
+  'spectral.config.cts',
+  'spectral.config.js',
+  'spectral.config.mjs',
+  'spectral.config.cjs',
+] as const;
+
+export type LoadedRuleset = {
+  ruleset: RulesetDefinition;
+  source?: {
+    path: string;
+    autodiscovered: boolean;
+    mergedWithDefault: boolean;
+  };
 };
 
 export class RulesetLoadError extends Error {
@@ -57,46 +92,186 @@ export class RulesetLoadError extends Error {
 
 export const loadRuleset = async (
   input?: string | RulesetDefinition | Record<string, unknown>,
+  baseDir = process.cwd(),
 ): Promise<RulesetDefinition> => {
+  return (await loadResolvedRuleset(input, baseDir)).ruleset;
+};
+
+export const loadResolvedRuleset = async (
+  input?: string | RulesetDefinition | Record<string, unknown>,
+  baseDir = process.cwd(),
+): Promise<LoadedRuleset> => {
   if (!input) {
-    return defaultRuleset;
+    const autodiscoveredPath = await findAutodiscoveredRulesetPath(baseDir);
+    if (autodiscoveredPath) {
+      const loaded = await loadResolvedRuleset(autodiscoveredPath, baseDir);
+
+      return {
+        ruleset: mergeRulesets(defaultRuleset, loaded.ruleset),
+        source: {
+          path: autodiscoveredPath,
+          autodiscovered: true,
+          mergedWithDefault: true,
+        },
+      };
+    }
+
+    return { ruleset: defaultRuleset };
   }
 
   if (typeof input === 'string') {
-    const resolvedPath = path.resolve(process.cwd(), input);
+    const resolvedPath = path.resolve(baseDir, input);
 
-    if (!resolvedPath.endsWith('.yaml') && !resolvedPath.endsWith('.yml')) {
+    if (isYamlRulesetPath(resolvedPath)) {
+      return {
+        ruleset: await loadYamlRuleset(resolvedPath),
+        source: {
+          path: input,
+          autodiscovered: false,
+          mergedWithDefault: false,
+        },
+      };
+    }
+
+    if (!isModuleRulesetPath(resolvedPath)) {
       throw new RulesetLoadError(
-        `Unsupported ruleset path: ${input}. v0.1 supports local YAML rulesets only.`,
+        `Unsupported ruleset path: ${input}. Supported local rulesets are .yaml, .yml, .js, .mjs, .cjs, .ts, .mts, and .cts.`,
       );
     }
 
-    let fileContents: string;
-    try {
-      fileContents = await readFile(resolvedPath, 'utf8');
-    } catch (error) {
-      throw new RulesetLoadError(`Unable to read ruleset at ${resolvedPath}.`, {
-        cause: error,
-      });
-    }
-
-    let parsed: unknown;
-    try {
-      parsed = YAML.parse(fileContents);
-    } catch (error) {
-      throw new RulesetLoadError(
-        `Unable to parse YAML ruleset at ${resolvedPath}.`,
-        { cause: error },
-      );
-    }
-
-    return normalizeRulesetDefinition(parsed);
+    return {
+      ruleset: await loadModuleRuleset(resolvedPath),
+      source: {
+        path: input,
+        autodiscovered: false,
+        mergedWithDefault: false,
+      },
+    };
   }
 
-  return normalizeRulesetDefinition(input);
+  return { ruleset: normalizeRulesetDefinition(input) };
 };
 
-const normalizeRulesetDefinition = (input: unknown): RulesetDefinition => {
+const findAutodiscoveredRulesetPath = async (
+  baseDir: string,
+): Promise<string | undefined> => {
+  for (const filename of autodiscoverRulesetFilenames) {
+    const candidatePath = path.resolve(baseDir, filename);
+
+    try {
+      await access(candidatePath);
+      return `./${filename}`;
+    } catch {
+      // keep searching
+    }
+  }
+
+  return undefined;
+};
+
+const loadYamlRuleset = async (
+  resolvedPath: string,
+): Promise<RulesetDefinition> => {
+  let fileContents: string;
+  try {
+    fileContents = await readFile(resolvedPath, 'utf8');
+  } catch (error) {
+    throw new RulesetLoadError(`Unable to read ruleset at ${resolvedPath}.`, {
+      cause: error,
+    });
+  }
+
+  let parsed: unknown;
+  try {
+    parsed = YAML.parse(fileContents);
+  } catch (error) {
+    throw new RulesetLoadError(
+      `Unable to parse YAML ruleset at ${resolvedPath}.`,
+      { cause: error },
+    );
+  }
+
+  return normalizeRulesetDefinition(parsed);
+};
+
+const loadModuleRuleset = async (
+  resolvedPath: string,
+): Promise<RulesetDefinition> => {
+  let imported: unknown;
+  try {
+    imported = await import(pathToFileURL(resolvedPath).href);
+  } catch (error) {
+    throw new RulesetLoadError(
+      `Unable to import module ruleset at ${resolvedPath}.`,
+      { cause: error },
+    );
+  }
+
+  const resolvedRuleset = resolveModuleRulesetValue(imported);
+  if (resolvedRuleset === undefined) {
+    throw new RulesetLoadError(
+      `Module ruleset at ${resolvedPath} must export a ruleset as the default export or a named "ruleset" export.`,
+    );
+  }
+
+  const availableFunctions = {
+    ...functionMap,
+    ...resolveModuleFunctions(imported),
+  };
+
+  return normalizeRulesetDefinition(resolvedRuleset, availableFunctions);
+};
+
+const resolveModuleRulesetValue = (imported: unknown): unknown => {
+  if (!isRecord(imported)) {
+    return imported;
+  }
+
+  if ('default' in imported) {
+    return imported.default;
+  }
+
+  if ('ruleset' in imported) {
+    return imported.ruleset;
+  }
+
+  return undefined;
+};
+
+const resolveModuleFunctions = (imported: unknown): AvailableFunctionMap => {
+  if (!isRecord(imported) || !('functions' in imported)) {
+    return {};
+  }
+
+  const { functions } = imported;
+  if (!isRecord(functions)) {
+    throw new RulesetLoadError(
+      'Module ruleset "functions" export must be an object map of function names to Spectral functions.',
+    );
+  }
+
+  const entries = Object.entries(functions).filter(([, value]) =>
+    typeof value === 'function',
+  );
+
+  return Object.fromEntries(entries) as AvailableFunctionMap;
+};
+
+const isYamlRulesetPath = (value: string): boolean =>
+  value.endsWith('.yaml') || value.endsWith('.yml');
+
+const isModuleRulesetPath = (value: string): boolean =>
+  value.endsWith('.js') ||
+  value.endsWith('.mjs') ||
+  value.endsWith('.cjs') ||
+  value.endsWith('.ts') ||
+  value.endsWith('.mts') ||
+  value.endsWith('.cts');
+
+const normalizeRulesetDefinition = (
+  input: unknown,
+  availableFunctions: AvailableFunctionMap = functionMap,
+): RulesetDefinition => {
   if (!isRecord(input)) {
     throw new RulesetLoadError('Ruleset must be an object.');
   }
@@ -108,10 +283,52 @@ const normalizeRulesetDefinition = (input: unknown): RulesetDefinition => {
   }
 
   if ('rules' in normalized) {
-    normalized.rules = normalizeRules(normalized.rules);
+    normalized.rules = normalizeRules(normalized.rules, availableFunctions);
   }
 
   return normalized as RulesetDefinition;
+};
+
+const mergeRulesets = (
+  baseRuleset: RulesetDefinition,
+  overrideRuleset: RulesetDefinition,
+): RulesetDefinition => {
+  const mergedBase = baseRuleset as Record<string, unknown>;
+  const mergedOverride = overrideRuleset as Record<string, unknown>;
+
+  const baseRules = isRecord(mergedBase.rules) ? mergedBase.rules : {};
+  const overrideRules = isRecord(mergedOverride.rules) ? mergedOverride.rules : {};
+  const mergedRules = {
+    ...baseRules,
+    ...overrideRules,
+  };
+
+  const baseExtends = toExtendsArray(mergedBase.extends);
+  const overrideExtends = toExtendsArray(mergedOverride.extends);
+  const mergedExtends = [...baseExtends, ...overrideExtends];
+
+  const merged: Record<string, unknown> = {
+    ...mergedBase,
+    ...mergedOverride,
+  };
+
+  if (mergedExtends.length > 0) {
+    merged.extends = mergedExtends;
+  }
+
+  if (Object.keys(mergedRules).length > 0) {
+    merged.rules = mergedRules;
+  }
+
+  return merged as RulesetDefinition;
+};
+
+const toExtendsArray = (value: unknown): unknown[] => {
+  if (value === undefined) {
+    return [];
+  }
+
+  return Array.isArray(value) ? [...value] : [value];
 };
 
 const normalizeExtends = (value: unknown): unknown => {
@@ -152,19 +369,25 @@ const resolveExtendsEntry = (value: string): RulesetDefinition => {
   return resolved;
 };
 
-const normalizeRules = (value: unknown): unknown => {
+const normalizeRules = (
+  value: unknown,
+  availableFunctions: AvailableFunctionMap,
+): unknown => {
   if (!isRecord(value)) {
     return value;
   }
 
   const entries = Object.entries(value).map(([ruleName, ruleValue]) => [
     ruleName,
-    normalizeRule(ruleValue),
+    normalizeRule(ruleValue, availableFunctions),
   ]);
   return Object.fromEntries(entries);
 };
 
-const normalizeRule = (value: unknown): unknown => {
+const normalizeRule = (
+  value: unknown,
+  availableFunctions: AvailableFunctionMap,
+): unknown => {
   if (!isRecord(value)) {
     return value;
   }
@@ -172,21 +395,27 @@ const normalizeRule = (value: unknown): unknown => {
   const normalized: Record<string, unknown> = { ...value };
 
   if ('then' in normalized) {
-    normalized.then = normalizeThen(normalized.then);
+    normalized.then = normalizeThen(normalized.then, availableFunctions);
   }
 
   return normalized;
 };
 
-const normalizeThen = (value: unknown): unknown => {
+const normalizeThen = (
+  value: unknown,
+  availableFunctions: AvailableFunctionMap,
+): unknown => {
   if (Array.isArray(value)) {
-    return value.map((entry) => normalizeThenEntry(entry));
+    return value.map((entry) => normalizeThenEntry(entry, availableFunctions));
   }
 
-  return normalizeThenEntry(value);
+  return normalizeThenEntry(value, availableFunctions);
 };
 
-const normalizeThenEntry = (value: unknown): unknown => {
+const normalizeThenEntry = (
+  value: unknown,
+  availableFunctions: AvailableFunctionMap,
+): unknown => {
   if (!isRecord(value)) {
     return value;
   }
@@ -194,8 +423,7 @@ const normalizeThenEntry = (value: unknown): unknown => {
   const normalized: Record<string, unknown> = { ...value };
 
   if (typeof normalized.function === 'string') {
-    const resolved =
-      functionMap[normalized.function as keyof typeof functionMap];
+    const resolved = availableFunctions[normalized.function];
 
     if (!resolved) {
       throw new RulesetLoadError(

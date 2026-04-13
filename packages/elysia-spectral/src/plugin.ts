@@ -42,9 +42,10 @@ export const spectralPlugin = (options: SpectralPluginOptions = {}) => {
         }
 
         try {
-          const usedCache = !fresh && runtime.latest !== null;
+          const usedCache =
+            !fresh && (runtime.latest !== null || runtime.running);
           const result = usedCache
-            ? runtime.latest
+            ? runtime.latest ?? (await runtime.run(currentApp))
             : await runtime.run(currentApp);
 
           if (result === null) {

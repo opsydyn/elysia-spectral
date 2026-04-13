@@ -101,6 +101,82 @@ new Elysia()
   })
 ```
 
+## Repo-Level Rulesets
+
+The default team customization path is a repo-level ruleset file.
+
+Point the plugin at a ruleset in the consuming application's root:
+
+```ts
+spectralPlugin({
+  ruleset: './spectral.yaml'
+})
+```
+
+Or let the plugin autodiscover a standard repo-level ruleset file:
+
+```ts
+spectralPlugin()
+```
+
+Minimal example:
+
+```yaml
+extends:
+  - spectral:oas
+
+rules:
+  operation-description:
+    severity: error
+
+  operation-tags:
+    severity: warn
+
+  elysia-operation-summary:
+    severity: error
+```
+
+TS module example with a custom function:
+
+```ts
+const startsWithPrefix = (input, options) => {
+  if (typeof input !== 'string' || !input.startsWith(options.prefix)) {
+    return [{ message: `OperationId must start with "${options.prefix}".` }]
+  }
+}
+
+export const functions = {
+  startsWithPrefix
+}
+
+export default {
+  extends: ['spectral:oas'],
+  rules: {
+    'operation-id-prefix': {
+      given: '$.paths[*][get,put,post,delete,options,head,patch,trace]',
+      then: {
+        field: 'operationId',
+        function: 'startsWithPrefix',
+        functionOptions: { prefix: 'fetch' }
+      }
+    }
+  }
+}
+```
+
+Notes:
+
+- ruleset paths resolve from the consuming app's `process.cwd()`
+- in a typical service repo, `./spectral.yaml` means the repo root
+- in this monorepo, the example app resolves `./spectral.yaml` from `apps/dev-app`
+- when `ruleset` is omitted, the plugin looks for `spectral.yaml`, `spectral.yml`, `spectral.ts`, `spectral.mts`, `spectral.cts`, `spectral.js`, `spectral.mjs`, `spectral.cjs`, `spectral.config.yaml`, `spectral.config.yml`, `spectral.config.ts`, `spectral.config.mts`, `spectral.config.cts`, `spectral.config.js`, `spectral.config.mjs`, and `spectral.config.cjs` in that order
+- supported local ruleset files are `.yaml`, `.yml`, `.js`, `.mjs`, `.cjs`, `.ts`, `.mts`, and `.cts`
+- module rulesets should export the ruleset as either the default export or a named `ruleset` export
+- module rulesets can optionally export `functions` to register custom Spectral functions by name
+- autodiscovered repo-level rulesets are merged with the package default ruleset so your repo can override or extend the built-in Elysia rules
+- the runtime logs which repo-level ruleset file was autodiscovered
+- in-memory ruleset objects are also supported
+
 ## Spec Snapshot Output
 
 Use `output.specSnapshotPath` when you want to persist the generated OpenAPI document itself as a versioned artifact in the consuming app.
@@ -224,7 +300,8 @@ await runtime.run(app)
 - `output.specSnapshotPath` writes the generated OpenAPI JSON itself, not the lint result.
 - Set `output.specSnapshotPath` to `true` to derive `./<package-name>.open-api.json` from the consuming app's `package.json` name.
 - Snapshot and report paths are resolved from the consuming app's `process.cwd()`, so they land in the host project root rather than inside this package.
-- v0.1 supports local YAML rulesets and in-memory ruleset objects.
+- the recommended customization path today is a repo-level `spectral.yaml`.
+- v0.1 supports local YAML rulesets, local JS or TS module rulesets, and in-memory ruleset objects.
 - The healthcheck endpoint is optional and off unless configured.
-- v0.1 does not include SARIF output or JS/TS ruleset loading.
+- v0.1 does not include SARIF output.
 - In this monorepo, run package checks from the repo root with `bun run test`, `bun run build`, and `bun run typecheck`.

@@ -25,6 +25,12 @@ the current limitations are structural, not cosmetic:
 - outputs are artifact flags, not extensible sinks
 - the built-in ruleset is useful but too light for serious API governance
 
+the current user-customization path should stay simple:
+
+- repo-level `spectral.yaml` should be the default way for teams to define their own rules
+- package defaults should remain available as the base policy
+- service-level overrides should be possible without forking this package
+
 ## target state
 
 the target v1 should look like this:
@@ -100,7 +106,9 @@ scope:
 
 - replace the fixed `output` model with sink-style output abstractions
 - introduce a ruleset resolver pipeline instead of only local YAML loading
+- treat repo-root rulesets as the primary customization path for application teams
 - support rulesets from:
+  - repo-root `./spectral.yaml`
   - package default preset
   - local YAML
   - imported object
@@ -114,6 +122,7 @@ scope:
 
 acceptance criteria:
 
+- a team can drop `spectral.yaml` at the app or repo root and use it without extra package wiring
 - current simple usage remains supported
 - advanced users can add new ruleset and output strategies without patching core runtime code
 - SARIF output works in CI systems that consume code scanning artifacts
@@ -225,7 +234,8 @@ the next high-leverage implementation tasks are:
 2. redesign the options shape around execution mode versus exposure mode
 3. add tests for misconfigured spec resolution and disabled endpoints
 4. introduce richer runtime state and in-flight run deduplication
-5. design sink and ruleset resolver interfaces before adding new output types
+5. document repo-root `spectral.yaml` as the default customization path
+6. design sink and ruleset resolver interfaces before adding new output types
 
 ## done definition for the next release
 

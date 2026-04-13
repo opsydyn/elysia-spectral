@@ -75,5 +75,6 @@ export interface SpecProvider {
 
 export type OpenApiLintRuntime = {
   latest: LintRunResult | null;
+  running: boolean;
   run: (app: AnyElysia) => Promise<LintRunResult>;
 };
