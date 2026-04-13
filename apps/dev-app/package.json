@@ -1,0 +1,21 @@
+{
+  "name": "elysia-spectral-dev-app",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "bun run --watch src/index.ts",
+    "dev:unhappy": "bun run --watch src/unhappy.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@elysiajs/openapi": "^1.4.0",
+    "elysia": "^1.4.0",
+    "elysia-spectral": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.2.9",
+    "@types/node": "^22.15.31",
+    "typescript": "^5.8.3"
+  }
+}

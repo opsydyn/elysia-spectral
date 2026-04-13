@@ -1,0 +1,22 @@
+{
+  "name": "elysia-spectral-workspace",
+  "private": true,
+  "packageManager": "bun@1.2.9",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "lint": "bunx --bun @biomejs/biome check .",
+    "lint:fix": "bunx --bun @biomejs/biome check --write .",
+    "format": "bunx --bun @biomejs/biome format .",
+    "format:write": "bunx --bun @biomejs/biome format --write .",
+    "build": "bun run --filter elysia-spectral build",
+    "test": "bun run --filter elysia-spectral test",
+    "test:watch": "bun run --filter elysia-spectral test:watch",
+    "typecheck": "bun run --filter elysia-spectral typecheck && bun run --filter elysia-spectral-dev-app typecheck",
+    "dev": "bun run --filter elysia-spectral build && bun run --filter elysia-spectral-dev-app dev",
+    "dev:unhappy": "bun run --filter elysia-spectral build && bun run --filter elysia-spectral-dev-app dev:unhappy",
+    "check": "bun run lint && bun run typecheck && bun run test && bun run build"
+  }
+}

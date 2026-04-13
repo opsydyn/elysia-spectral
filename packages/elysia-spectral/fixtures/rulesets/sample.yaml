@@ -1,0 +1,10 @@
+extends:
+  - spectral:oas
+rules:
+  sample-operation-summary:
+    description: Operation should define a summary.
+    severity: warn
+    given: $.paths[*][get,put,post,delete,options,head,patch,trace]
+    then:
+      field: summary
+      function: truthy

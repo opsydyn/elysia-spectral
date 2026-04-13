@@ -1,0 +1,64 @@
+{
+  "name": "elysia-spectral",
+  "version": "0.1.0",
+  "description": "Thin Elysia plugin that lints generated OpenAPI documents with Spectral.",
+  "packageManager": "bun@1.2.9",
+  "publishConfig": {
+    "access": "public"
+  },
+  "sideEffects": false,
+  "type": "module",
+  "main": "./dist/index.mjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.mts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.mts",
+      "import": "./dist/index.mjs"
+    },
+    "./core": {
+      "types": "./dist/core/index.d.mts",
+      "import": "./dist/core/index.mjs"
+    }
+  },
+  "files": [
+    "CHANGELOG.md",
+    "dist",
+    "README.md",
+    "spectral.yaml"
+  ],
+  "scripts": {
+    "build": "tsdown",
+    "typecheck": "tsc --noEmit",
+    "test": "bun test",
+    "test:watch": "bun test --watch"
+  },
+  "keywords": [
+    "elysia",
+    "openapi",
+    "spectral",
+    "lint",
+    "bun"
+  ],
+  "author": "",
+  "license": "MIT",
+  "peerDependencies": {
+    "elysia": "^1.4.0"
+  },
+  "dependencies": {
+    "@stoplight/spectral-core": "^1.20.0",
+    "@stoplight/spectral-formats": "^1.8.0",
+    "@stoplight/spectral-functions": "^1.10.1",
+    "@stoplight/spectral-parsers": "^1.0.4",
+    "@stoplight/spectral-rulesets": "^1.22.0",
+    "yaml": "^2.8.1"
+  },
+  "devDependencies": {
+    "@elysiajs/openapi": "^1.4.0",
+    "@types/bun": "^1.2.9",
+    "@types/node": "^22.15.31",
+    "elysia": "^1.4.0",
+    "tsdown": "^0.21.7",
+    "typescript": "^5.8.3"
+  }
+}
