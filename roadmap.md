@@ -123,29 +123,27 @@ acceptance status:
 
 goal: make policy and output extensible without bloating the plugin.
 
-status: partial foundation complete
+status: complete
 
-already complete:
+completed:
 
 - repo-root rulesets are the primary customization path
 - current simple usage remains supported
 - local YAML, JS, TS, and in-memory rulesets work
 - module rulesets can export custom functions
 - autodiscovery and default-rule merging are implemented
-
-not yet complete:
-
-- replace the fixed `output` model with sink-style abstractions
-- formalize a ruleset resolver pipeline instead of just richer loader behavior
-- support built-in SARIF output
-- expose extension points cleanly enough that users can add new output or resolver strategies without patching runtime code
+- fixed `output` model replaced with named sink abstractions
+- ruleset loading formalized as a resolver pipeline with pluggable `RulesetResolver` functions
+- SARIF output built in as the first non-JSON machine-readable sink
+- JUnit output built in for CI test result consumers
+- custom output sinks supported via `options.output.sinks` without patching runtime code
 
 acceptance criteria:
 
 - a team can drop `spectral.yaml` at the app or repo root and use it without extra package wiring: complete
 - current simple usage remains supported: complete
-- advanced users can add new ruleset and output strategies without patching core runtime code: not yet complete
-- SARIF output works in CI systems that consume code scanning artifacts: not yet complete
+- advanced users can add new ruleset and output strategies without patching core runtime code: complete
+- SARIF output works in CI systems that consume code scanning artifacts: complete
 
 ### milestone 0.5
 
@@ -231,18 +229,8 @@ these should stay out unless the product direction changes:
 
 the next high-leverage implementation tasks are now:
 
-1. design sink-style output interfaces behind the current convenience options
-2. add SARIF output as the first non-JSON machine-readable sink
-3. formalize ruleset resolution as a resolver pipeline rather than just an enriched loader
-4. define the first preset set for `recommended`, `server`, and `strict`
-5. document CI as a primary supported workflow using `createOpenApiLintRuntime`
-6. optionally add explicit runtime source metadata such as `startup`, `healthcheck`, or `manual`
-
-## done definition for the next release
-
-the next release after `v0.1` is successful if:
-
-- the roadmap matches the real implementation state
-- output and ruleset extensibility have a visible path in code, not just notes
-- the package can emit at least one additional CI-oriented machine-readable format
-- the first preset story is concrete enough to start implementation
+1. define the first preset set for `recommended`, `server`, and `strict` (milestone 0.5)
+2. document CI as a primary supported workflow using `createOpenApiLintRuntime` (milestone 0.6)
+3. add optional runtime source metadata such as `startup`, `healthcheck`, or `manual` (milestone 0.3 polish)
+4. document snapshot and diff workflows for downstream contract tooling (milestone 0.6)
+5. stabilize public API surface and package boundaries for `1.0`
