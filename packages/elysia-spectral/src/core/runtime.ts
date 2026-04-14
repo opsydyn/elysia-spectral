@@ -1,5 +1,5 @@
 import type { AnyElysia } from 'elysia';
-import { reportToConsole, resolveLogger } from '../output/console-reporter';
+import { reportToConsole, resolveReporter } from '../output/console-reporter';
 import {
   resolveDefaultSpecSnapshotPath,
   writeJsonReport,
@@ -20,7 +20,9 @@ import { enforceThreshold } from './thresholds';
 export const createOpenApiLintRuntime = (
   options: SpectralPluginOptions = {},
 ): OpenApiLintRuntime => {
-  const logger = resolveLogger(options.logger);
+  const reporter = resolveReporter(options.logger);
+  const artifactWriteFailureMode =
+    options.output?.artifactWriteFailures ?? 'warn';
   let inFlight: Promise<LintRunResult> | null = null;
 
   const runtime: OpenApiLintRuntime = {
@@ -44,7 +46,7 @@ export const createOpenApiLintRuntime = (
         runtime.startedAt = startedAt.toISOString();
         runtime.completedAt = null;
         runtime.durationMs = null;
-        logger.info('OpenAPI lint started.');
+        reporter.start('OpenAPI lint started.');
 
         try {
           const provider = new PublicSpecProvider(app, options.source);
@@ -63,25 +65,26 @@ export const createOpenApiLintRuntime = (
                 spec,
                 options.output.pretty !== false,
               );
-              logger.info(
+              reporter.artifact(
                 `OpenAPI lint wrote spec snapshot to ${snapshotPath}.`,
               );
             } catch (error) {
-              logger.warn(
-                `OpenAPI lint could not write spec snapshot: ${error instanceof Error ? error.message : String(error)}`,
+              handleArtifactWriteFailure(
+                'spec snapshot',
+                error,
+                artifactWriteFailureMode,
+                reporter,
               );
             }
           }
 
           const loadedRuleset = await loadResolvedRuleset(options.ruleset);
           if (loadedRuleset.source?.autodiscovered) {
-            logger.info(
+            reporter.ruleset(
               `OpenAPI lint autodiscovered ruleset ${loadedRuleset.source.path} and merged it with the package default ruleset.`,
             );
           } else if (loadedRuleset.source?.path) {
-            logger.info(
-              `OpenAPI lint loaded ruleset ${loadedRuleset.source.path}.`,
-            );
+            reporter.ruleset(`OpenAPI lint loaded ruleset ${loadedRuleset.source.path}.`);
           }
 
           const result = await lintOpenApi(spec, loadedRuleset.ruleset);
@@ -100,10 +103,15 @@ export const createOpenApiLintRuntime = (
                 result,
                 options.output.pretty !== false,
               );
-              logger.info(`OpenAPI lint wrote JSON report to ${reportPath}.`);
+              reporter.artifact(
+                `OpenAPI lint wrote JSON report to ${reportPath}.`,
+              );
             } catch (error) {
-              logger.warn(
-                `OpenAPI lint could not write JSON report: ${error instanceof Error ? error.message : String(error)}`,
+              handleArtifactWriteFailure(
+                'JSON report',
+                error,
+                artifactWriteFailureMode,
+                reporter,
               );
             }
           }
@@ -116,10 +124,10 @@ export const createOpenApiLintRuntime = (
           }
 
           if (options.output?.console !== false) {
-            reportToConsole(result, logger);
+            reportToConsole(result, reporter);
           }
 
-          logger.info('OpenAPI lint completed.');
+          reporter.complete('OpenAPI lint completed.');
           enforceThreshold(result, options.failOn ?? 'error');
 
           runtime.status = 'passed';
@@ -160,6 +168,33 @@ const toRuntimeFailure = (error: unknown): OpenApiLintRuntimeFailure => ({
   message: error instanceof Error ? error.message : String(error),
   generatedAt: new Date().toISOString(),
 });
+
+export class OpenApiLintArtifactWriteError extends Error {
+  constructor(
+    readonly artifact: 'spec snapshot' | 'JSON report',
+    readonly cause: unknown,
+  ) {
+    super(
+      `OpenAPI lint could not write ${artifact}: ${cause instanceof Error ? cause.message : String(cause)}`,
+    );
+    this.name = 'OpenApiLintArtifactWriteError';
+  }
+}
+
+const handleArtifactWriteFailure = (
+  artifact: 'spec snapshot' | 'JSON report',
+  error: unknown,
+  mode: 'warn' | 'error',
+  reporter: ReturnType<typeof resolveReporter>,
+): void => {
+  const wrappedError = new OpenApiLintArtifactWriteError(artifact, error);
+
+  if (mode === 'error') {
+    throw wrappedError;
+  }
+
+  reporter.warn(wrappedError.message);
+};
 
 export const isEnabled = (options: SpectralPluginOptions = {}): boolean => {
   return resolveStartupMode(options) !== 'off';

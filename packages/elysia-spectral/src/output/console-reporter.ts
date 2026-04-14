@@ -1,48 +1,126 @@
+import signale from 'signale';
 import type { LintFinding, LintRunResult, SpectralLogger } from '../types';
 import {
+  formatCompactSummaryCounts,
   formatDivider,
-  formatHeading,
   formatFindingTitle,
   formatKey,
   formatPassCard,
   formatSectionHeading,
-  formatStatusBadge,
   formatSpecReference,
   formatSummaryCounts,
 } from './terminal-format';
 
-const defaultLogger: SpectralLogger = {
-  info: (message) => console.info(message),
-  warn: (message) => console.warn(message),
-  error: (message) => console.error(message),
+type SpectralReporter = SpectralLogger & {
+  log: (message: string) => void;
+  note: (message: string) => void;
+  start: (message: string) => void;
+  complete: (message: string) => void;
+  success: (message: string) => void;
+  awaiting: (message: string) => void;
+  artifact: (message: string) => void;
+  ruleset: (message: string) => void;
+  report: (message: string) => void;
+  hype: (message: string) => void;
+};
+
+type CustomReporterType = 'artifact' | 'ruleset' | 'report' | 'hype';
+
+const { Signale } = signale;
+
+const defaultSignale = new Signale<CustomReporterType>({
+  scope: 'elysia-spectral',
+  interactive: false,
+  types: {
+    artifact: {
+      badge: '◆',
+      color: 'cyan',
+      label: 'artifact',
+      logLevel: 'info',
+    },
+    ruleset: {
+      badge: '◌',
+      color: 'blue',
+      label: 'ruleset',
+      logLevel: 'info',
+    },
+    report: {
+      badge: '↺',
+      color: 'magenta',
+      label: 'report',
+      logLevel: 'warn',
+    },
+    hype: {
+      badge: '▲',
+      color: 'magenta',
+      label: 'hype',
+      logLevel: 'info',
+    },
+  },
+});
+
+const defaultReporter: SpectralReporter = {
+  info: (message) => defaultSignale.log(message),
+  warn: (message) => defaultSignale.warn(message),
+  error: (message) => defaultSignale.error(message),
+  log: (message) => defaultSignale.log(message),
+  note: (message) => defaultSignale.note(message),
+  start: (message) => defaultSignale.start(message),
+  complete: (message) => defaultSignale.complete(message),
+  success: (message) => defaultSignale.success(message),
+  awaiting: (message) => defaultSignale.await(message),
+  artifact: (message) => defaultSignale.artifact(message),
+  ruleset: (message) => defaultSignale.ruleset(message),
+  report: (message) => defaultSignale.report(message),
+  hype: (message) => defaultSignale.hype(message),
 };
 
 export const resolveLogger = (logger?: SpectralLogger): SpectralLogger =>
-  logger ?? defaultLogger;
+  resolveReporter(logger);
+
+export const resolveReporter = (
+  logger?: SpectralLogger,
+): SpectralReporter => {
+  if (!logger) {
+    return defaultReporter;
+  }
+
+  return {
+    ...logger,
+    log: (message) => logger.info(message),
+    note: (message) => logger.info(message),
+    start: (message) => logger.info(message),
+    complete: (message) => logger.info(message),
+    success: (message) => logger.info(message),
+    awaiting: (message) => logger.info(message),
+    artifact: (message) => logger.info(message),
+    ruleset: (message) => logger.info(message),
+    report: (message) => logger.warn(message),
+    hype: (message) => logger.info(message),
+  };
+};
 
 export const reportToConsole = (
   result: LintRunResult,
-  logger: SpectralLogger = defaultLogger,
+  logger: SpectralLogger = defaultReporter,
 ): void => {
-  const failed = result.summary.error > 0;
-  const summaryLine = [
-    formatHeading('OPENAPI LINT'),
-    formatStatusBadge(failed ? 'fail' : 'pass'),
-    formatSummaryCounts(result.summary),
-  ].join('  ');
+  const reporter = resolveReporter(logger);
+  const summaryCounts = formatSummaryCounts(result.summary);
 
   if (result.summary.total === 0) {
-    logger.info(formatPassCard(result.summary));
+    reporter.success('OpenAPI lint passed.');
+    reporter.note(formatCompactSummaryCounts(result.summary));
+    reporter.hype(formatPassCard(result.summary));
     return;
   }
 
   if (result.summary.error > 0) {
-    logger.error(summaryLine);
+    reporter.error(`OpenAPI lint found contract failures. ${summaryCounts}`);
   } else {
-    logger.warn(summaryLine);
+    reporter.warn(`OpenAPI lint found warnings. ${summaryCounts}`);
   }
 
-  logger.info(formatDivider());
+  reporter.log(formatDivider());
 
   const sections = [
     {
@@ -68,54 +146,39 @@ export const reportToConsole = (
   ].filter((section) => section.findings.length > 0);
 
   for (const section of sections) {
-    logger.info(formatSectionHeading(section.title, section.severity));
-    logger.info(formatDivider());
+    reporter.log(formatSectionHeading(section.title, section.severity));
+    reporter.log(formatDivider());
 
     for (const finding of section.findings) {
-      logFinding(finding, logger, result.artifacts?.specSnapshotPath);
+      logFinding(finding, reporter, result.artifacts?.specSnapshotPath);
     }
   }
 
-  logger.info(
-    [
-      formatHeading('SUMMARY'),
-      formatStatusBadge(failed ? 'fail' : 'pass'),
-      formatSummaryCounts(result.summary),
-    ].join('  '),
-  );
+  reporter.note(`Summary: ${summaryCounts}`);
 };
 
 const logFinding = (
   finding: LintFinding,
-  logger: SpectralLogger,
+  reporter: SpectralReporter,
   specSnapshotPath?: string,
 ): void => {
   const specReference = buildSpecReference(finding, specSnapshotPath);
   const title = formatFindingTitle(finding);
+  reporter.log(title);
 
-  switch (finding.severity) {
-    case 'error':
-      logger.error(title);
-      break;
-    case 'warn':
-      logger.warn(title);
-      break;
-    default:
-      logger.info(title);
-      break;
-  }
-
-  logger.info(`  ${formatKey('issue')} ${finding.message}`);
+  reporter.log(`  ${formatKey('issue')} ${finding.message}`);
 
   if (finding.recommendation) {
-    logger.info(`  ${formatKey('fix')}   ${finding.recommendation}`);
+    reporter.log(`  ${formatKey('fix')}   ${finding.recommendation}`);
   }
 
   if (specReference) {
-    logger.info(`  ${formatKey('spec')}  ${formatSpecReference(specReference)}`);
+    reporter.log(
+      `  ${formatKey('spec')}  ${formatSpecReference(specReference)}`,
+    );
   }
 
-  logger.info(formatDivider());
+  reporter.log(formatDivider());
 };
 
 const buildSpecReference = (

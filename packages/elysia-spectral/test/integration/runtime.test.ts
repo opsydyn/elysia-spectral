@@ -3,7 +3,10 @@ import { readFile, rm } from 'node:fs/promises';
 import path from 'node:path';
 import { openapi } from '@elysiajs/openapi';
 import { Elysia, t } from 'elysia';
-import { createOpenApiLintRuntime } from '../../src/core/runtime';
+import {
+  createOpenApiLintRuntime,
+  OpenApiLintArtifactWriteError,
+} from '../../src/core/runtime';
 import { OpenApiLintThresholdError } from '../../src/core/thresholds';
 import { PublicSpecProviderError } from '../../src/providers/public-spec-provider';
 
@@ -223,6 +226,118 @@ describe('createOpenApiLintRuntime', () => {
       expect(snapshot.info.title).toBe('Runtime Derived Snapshot API');
     } finally {
       await rm(snapshotPath, { force: true });
+    }
+  });
+
+  it('warns and continues when artifact writes fail in warn mode', async () => {
+    const warnings: string[] = [];
+    const app = new Elysia()
+      .use(
+        openapi({
+          documentation: {
+            info: {
+              title: 'Runtime Artifact Warning API',
+              version: '1.0.0',
+            },
+            tags: [{ name: 'Users', description: 'User operations' }],
+          },
+        }),
+      )
+      .get('/users', () => [{ id: '1' }], {
+        response: {
+          200: t.Array(
+            t.Object({
+              id: t.String(),
+            }),
+          ),
+        },
+        detail: {
+          summary: 'List users',
+          description: 'Returns users for artifact write warning testing.',
+          operationId: 'listUsersArtifactWarning',
+          tags: ['Users'],
+        },
+      });
+
+    const runtime = createOpenApiLintRuntime({
+      output: {
+        console: false,
+        jsonReportPath: '.',
+        artifactWriteFailures: 'warn',
+      },
+      logger: {
+        info: () => {},
+        warn: (message) => warnings.push(message),
+        error: () => {},
+      },
+      failOn: 'error',
+    });
+
+    const result = await runtime.run(app);
+
+    expect(result.summary.error).toBe(0);
+    expect(runtime.status).toBe('passed');
+    expect(runtime.lastSuccess).toBe(result);
+    expect(
+      warnings.some((message) =>
+        message.includes('OpenAPI lint could not write JSON report:'),
+      ),
+    ).toBe(true);
+  });
+
+  it('fails the run when artifact writes fail in error mode', async () => {
+    const app = new Elysia()
+      .use(
+        openapi({
+          documentation: {
+            info: {
+              title: 'Runtime Artifact Error API',
+              version: '1.0.0',
+            },
+            tags: [{ name: 'Users', description: 'User operations' }],
+          },
+        }),
+      )
+      .get('/users', () => [{ id: '1' }], {
+        response: {
+          200: t.Array(
+            t.Object({
+              id: t.String(),
+            }),
+          ),
+        },
+        detail: {
+          summary: 'List users',
+          description: 'Returns users for artifact write error testing.',
+          operationId: 'listUsersArtifactError',
+          tags: ['Users'],
+        },
+      });
+
+    const runtime = createOpenApiLintRuntime({
+      output: {
+        console: false,
+        specSnapshotPath: '.',
+        artifactWriteFailures: 'error',
+      },
+      failOn: 'error',
+    });
+
+    try {
+      await runtime.run(app);
+      throw new Error(
+        'Expected runtime.run to fail when artifactWriteFailures is "error".',
+      );
+    } catch (error) {
+      expect(error).toBeInstanceOf(OpenApiLintArtifactWriteError);
+      expect(runtime.status).toBe('failed');
+      expect(runtime.running).toBe(false);
+      expect(runtime.latest).toBeNull();
+      expect(runtime.lastSuccess).toBeNull();
+      expect(runtime.lastFailure?.name).toBe('OpenApiLintArtifactWriteError');
+      expect(runtime.lastFailure?.message).toContain(
+        'OpenAPI lint could not write spec snapshot:',
+      );
     }
   });
 

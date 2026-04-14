@@ -13,6 +13,8 @@ export type OpenApiLintRuntimeStatus =
   | 'passed'
   | 'failed';
 
+export type ArtifactWriteFailureMode = 'warn' | 'error';
+
 export type SpectralLogger = {
   info: (message: string) => void;
   warn: (message: string) => void;
@@ -32,6 +34,7 @@ export type SpectralPluginOptions = {
     jsonReportPath?: string;
     specSnapshotPath?: string | true;
     pretty?: boolean;
+    artifactWriteFailures?: ArtifactWriteFailureMode;
   };
   source?: {
     specPath?: string;

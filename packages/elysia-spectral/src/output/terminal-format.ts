@@ -99,6 +99,16 @@ export const formatSummaryCounts = (
     `${formatCount(summary.hint, 'hint')} hint(s)`,
   ].join('  ');
 
+export const formatCompactSummaryCounts = (
+  summary: LintRunResult['summary'],
+): string =>
+  [
+    `${formatCount(summary.error, 'error')} errors`,
+    `${formatCount(summary.warn, 'warn')} warnings`,
+    `${formatCount(summary.info, 'info')} info`,
+    `${formatCount(summary.hint, 'hint')} hints`,
+  ].join('  ');
+
 export const formatSpecReference = (value: string): string => {
   const [filePath, pointer] = value.split('#', 2);
   if (!filePath) {
