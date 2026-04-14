@@ -56,8 +56,10 @@ This tutorial takes a minimal Elysia app and adds startup OpenAPI linting with a
 1. Install the dependencies.
 
 ```bash
+# bun
 bun add elysia @elysiajs/openapi @opsydyn/elysia-spectral
-# or
+
+# npm
 npm install elysia @elysiajs/openapi @opsydyn/elysia-spectral
 ```
 
