@@ -10,6 +10,7 @@ import type {
   LintRunResult,
   OpenApiLintRuntime,
   SpectralPluginOptions,
+  StartupLintMode,
 } from '../types';
 import { lintOpenApi } from './lint-openapi';
 import { loadResolvedRuleset } from './load-ruleset';
@@ -103,9 +104,8 @@ export const createOpenApiLintRuntime = (
           reportToConsole(result, logger);
         }
 
-        enforceThreshold(result, options.failOn ?? 'error');
-
         logger.info('OpenAPI lint completed.');
+        enforceThreshold(result, options.failOn ?? 'error');
         return result;
       })();
 
@@ -122,9 +122,19 @@ export const createOpenApiLintRuntime = (
 };
 
 export const isEnabled = (options: SpectralPluginOptions = {}): boolean => {
-  if (typeof options.enabled === 'function') {
-    return options.enabled(process.env);
+  return resolveStartupMode(options) !== 'off';
+};
+
+export const resolveStartupMode = (
+  options: SpectralPluginOptions = {},
+): StartupLintMode => {
+  if (options.startup?.mode) {
+    return options.startup.mode;
   }
 
-  return options.enabled ?? true;
+  if (typeof options.enabled === 'function') {
+    return options.enabled(process.env) ? 'enforce' : 'off';
+  }
+
+  return options.enabled === false ? 'off' : 'enforce';
 };

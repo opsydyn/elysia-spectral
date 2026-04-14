@@ -5,6 +5,8 @@ export type SeverityThreshold = 'error' | 'warn' | 'info' | 'hint' | 'never';
 
 export type LintSeverity = 'error' | 'warn' | 'info' | 'hint';
 
+export type StartupLintMode = 'enforce' | 'report' | 'off';
+
 export type SpectralLogger = {
   info: (message: string) => void;
   warn: (message: string) => void;
@@ -30,6 +32,9 @@ export type SpectralPluginOptions = {
     baseUrl?: string;
   };
   enabled?: boolean | ((env: Record<string, string | undefined>) => boolean);
+  startup?: {
+    mode?: StartupLintMode;
+  };
   logger?: SpectralLogger;
 };
 

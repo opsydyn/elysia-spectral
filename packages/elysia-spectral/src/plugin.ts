@@ -1,11 +1,13 @@
 import { type AnyElysia, Elysia } from 'elysia';
-import { createOpenApiLintRuntime, isEnabled } from './core/runtime';
+import { createOpenApiLintRuntime, resolveStartupMode } from './core/runtime';
 import { OpenApiLintThresholdError, shouldFail } from './core/thresholds';
+import { resolveLogger } from './output/console-reporter';
 import type { SpectralPluginOptions } from './types';
 
 export const spectralPlugin = (options: SpectralPluginOptions = {}) => {
   const runtime = createOpenApiLintRuntime(options);
   const hostAppRef: { current: AnyElysia | null } = { current: null };
+  const logger = resolveLogger(options.logger);
 
   let plugin = new Elysia({ name: 'elysia-spectral' })
     .state('openApiLint', runtime)
@@ -14,11 +16,27 @@ export const spectralPlugin = (options: SpectralPluginOptions = {}) => {
         context) as AnyElysia;
       hostAppRef.current = app;
 
-      if (!isEnabled(options)) {
+      const startupMode = resolveStartupMode(options);
+
+      if (startupMode === 'off') {
         return;
       }
 
-      await runtime.run(app);
+      try {
+        await runtime.run(app);
+      } catch (error) {
+        if (
+          startupMode === 'report' &&
+          error instanceof OpenApiLintThresholdError
+        ) {
+          logger.warn(
+            `OpenAPI lint exceeded the "${options.failOn ?? 'error'}" threshold, but startup is continuing because startup.mode is "report".`,
+          );
+          return;
+        }
+
+        throw error;
+      }
     });
 
   if (options.healthcheck !== false) {

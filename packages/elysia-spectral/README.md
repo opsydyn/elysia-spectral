@@ -44,14 +44,15 @@ To run an intentionally failing fixture and prove the linter catches bad routes:
 bun run dev:unhappy
 ```
 
-That example app keeps startup lint disabled so it can boot with a broken route. Then hit:
+That example app uses `startup.mode: 'report'` so it still boots with a broken route while the package prints the full lint report during startup. Then hit:
 
 - `/broken-users` for the intentionally under-documented route
-- `/health/openapi-lint?fresh=1` to force lint and get a `503` response with findings
+- `/health/openapi-lint` for the cached startup result
+- `/health/openapi-lint?fresh=1` to force another lint run
 - `./artifacts/openapi-lint-unhappy.json` for the failing JSON report
 - `./elysia-spectral-dev-app.open-api.json` for the generated OpenAPI document snapshot
 
-`bun run dev:unhappy` also performs one fresh lint automatically after boot and prints:
+`bun run dev:unhappy` also prints the package-owned terminal report automatically at startup, including:
 
 - the exact failing rule code
 - the affected operation
@@ -81,6 +82,9 @@ new Elysia()
     spectralPlugin({
       ruleset: './spectral.yaml',
       failOn: 'error',
+      startup: {
+        mode: 'enforce'
+      },
       output: {
         console: true,
         jsonReportPath: './artifacts/openapi-lint.json',
@@ -205,7 +209,8 @@ When `healthcheck` is enabled, the plugin exposes a hidden route that returns li
 - `GET /health/openapi-lint?fresh=1` forces a fresh lint run.
 - The route returns `200` when findings stay below `failOn` and `503` when they do not.
 - The route is hidden from generated OpenAPI docs.
-- If you want the route without blocking startup, set `enabled: false` and use `?fresh=1` to lint on demand.
+- If you want startup lint without blocking boot, set `startup.mode: 'report'`.
+- If you want the route without startup lint, set `startup.mode: 'off'` or `enabled: false` and use `?fresh=1` to lint on demand.
 
 Example response:
 
@@ -258,6 +263,9 @@ type SeverityThreshold = 'error' | 'warn' | 'info' | 'hint' | 'never'
 type SpectralPluginOptions = {
   ruleset?: string | Record<string, unknown>
   failOn?: SeverityThreshold
+  startup?: {
+    mode?: 'enforce' | 'report' | 'off'
+  }
   healthcheck?: false | { path?: string }
   output?: {
     console?: boolean
@@ -302,6 +310,8 @@ await runtime.run(app)
 - Snapshot and report paths are resolved from the consuming app's `process.cwd()`, so they land in the host project root rather than inside this package.
 - the recommended customization path today is a repo-level `spectral.yaml`.
 - v0.1 supports local YAML rulesets, local JS or TS module rulesets, and in-memory ruleset objects.
-- The healthcheck endpoint is optional and off unless configured.
+- `startup.mode: 'enforce'` is the default startup behavior.
+- `enabled: false` is still supported as a backward-compatible way to disable startup lint.
+- The healthcheck endpoint is enabled by default unless you set `healthcheck: false`.
 - v0.1 does not include SARIF output.
 - In this monorepo, run package checks from the repo root with `bun run test`, `bun run build`, and `bun run typecheck`.
