@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.4](https://github.com/opsydyn/elysia-spectral/compare/v0.2.3...v0.2.4) (2026-04-14)
+
+
+### Bug Fixes
+
+* clarify bun and npm install commands in tutorial ([535ca1e](https://github.com/opsydyn/elysia-spectral/commit/535ca1e77568801dbdc85a7b4e733ed9eb4e0486))
+
 ## [0.2.3](https://github.com/opsydyn/elysia-spectral/compare/v0.2.2...v0.2.3) (2026-04-14)
 
 
