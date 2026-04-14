@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/opsydyn/elysia-spectral/main/api-lint-repo-logo.png" alt="@opsydyn/elysia-spectral" width="480" />
+  <img src="https://raw.githubusercontent.com/opsydyn/elysia-spectral/main/repo_header_graphic.png" alt="@opsydyn/elysia-spectral" width="480" />
 </p>
 
 # @opsydyn/elysia-spectral
