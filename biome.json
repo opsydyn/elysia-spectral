@@ -39,6 +39,7 @@
       "includes": [
         "packages/elysia-spectral/src/core/load-ruleset.ts",
         "packages/elysia-spectral/src/rulesets/**/*.ts",
+        "packages/elysia-spectral/src/presets/**/*.ts",
         "packages/elysia-spectral/fixtures/**/*.ts",
         "packages/elysia-spectral/test/**/*.ts"
       ],

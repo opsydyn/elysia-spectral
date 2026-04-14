@@ -1,6 +1,7 @@
 import type { AnyElysia } from 'elysia';
 import { resolveReporter } from '../output/console-reporter';
 import { createOutputSinks } from '../output/sinks';
+import { presets } from '../presets';
 import { PublicSpecProvider } from '../providers/public-spec-provider';
 import type {
   LintRunResult,
@@ -49,11 +50,21 @@ export const createOpenApiLintRuntime = (
           const provider = new PublicSpecProvider(app, options.source);
           const spec = (await provider.getSpec()) as Record<string, unknown>;
 
-          const loadedRuleset = await loadResolvedRuleset(options.ruleset);
+          const loadedRuleset = await loadResolvedRuleset(options.ruleset, {
+            ...(options.preset
+              ? { defaultRuleset: presets[options.preset] }
+              : {}),
+          });
+
           if (loadedRuleset.source?.autodiscovered) {
+            const base = options.preset
+              ? `"${options.preset}" preset`
+              : 'package default ruleset';
             reporter.ruleset(
-              `OpenAPI lint autodiscovered ruleset ${loadedRuleset.source.path} and merged it with the package default ruleset.`,
+              `OpenAPI lint autodiscovered ruleset ${loadedRuleset.source.path} and merged it with the ${base}.`,
             );
+          } else if (options.preset && !loadedRuleset.source?.path) {
+            reporter.ruleset(`OpenAPI lint using "${options.preset}" preset.`);
           } else if (loadedRuleset.source?.path) {
             reporter.ruleset(
               `OpenAPI lint loaded ruleset ${loadedRuleset.source.path}.`,

@@ -9,7 +9,7 @@ import type {
 import spectralFunctions from '@stoplight/spectral-functions';
 import spectralRulesets from '@stoplight/spectral-rulesets';
 import YAML from 'yaml';
-import defaultRuleset from '../rulesets/default-ruleset';
+import packageDefaultRuleset from '../rulesets/default-ruleset';
 
 const {
   alphabetical,
@@ -109,6 +109,8 @@ export type LoadResolvedRulesetOptions = {
   baseDir?: string;
   resolvers?: RulesetResolver[];
   mergeAutodiscoveredWithDefault?: boolean;
+  /** Override the ruleset used as the merge base for autodiscovery and the fallback when no ruleset is configured. Defaults to the package default (recommended preset). */
+  defaultRuleset?: RulesetDefinition;
 };
 
 export class RulesetLoadError extends Error {
@@ -136,7 +138,7 @@ export const loadResolvedRuleset = async (
   const options = normalizeLoadResolvedRulesetOptions(baseDirOrOptions);
   const context: RulesetResolverContext = {
     baseDir: options.baseDir,
-    defaultRuleset,
+    defaultRuleset: options.defaultRuleset,
     mergeAutodiscoveredWithDefault: options.mergeAutodiscoveredWithDefault,
   };
 
@@ -156,7 +158,7 @@ export const loadResolvedRuleset = async (
   }
 
   if (input === undefined) {
-    return { ruleset: defaultRuleset };
+    return { ruleset: options.defaultRuleset };
   }
 
   throw new RulesetLoadError('Ruleset input could not be resolved.');
@@ -170,6 +172,7 @@ const normalizeLoadResolvedRulesetOptions = (
       baseDir: value,
       resolvers: defaultRulesetResolvers,
       mergeAutodiscoveredWithDefault: true,
+      defaultRuleset: packageDefaultRuleset,
     };
   }
 
@@ -178,6 +181,7 @@ const normalizeLoadResolvedRulesetOptions = (
     resolvers: value.resolvers ?? defaultRulesetResolvers,
     mergeAutodiscoveredWithDefault:
       value.mergeAutodiscoveredWithDefault ?? true,
+    defaultRuleset: value.defaultRuleset ?? packageDefaultRuleset,
   };
 };
 

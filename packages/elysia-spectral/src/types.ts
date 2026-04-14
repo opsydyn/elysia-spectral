@@ -1,6 +1,8 @@
 import type { RulesetDefinition } from '@stoplight/spectral-core';
 import type { AnyElysia } from 'elysia';
 
+export type PresetName = 'recommended' | 'server' | 'strict';
+
 export type SeverityThreshold = 'error' | 'warn' | 'info' | 'hint' | 'never';
 
 export type LintSeverity = 'error' | 'warn' | 'info' | 'hint';
@@ -41,6 +43,7 @@ export type OpenApiLintSink = {
 };
 
 export type SpectralPluginOptions = {
+  preset?: PresetName;
   ruleset?: string | RulesetDefinition | Record<string, unknown>;
   failOn?: SeverityThreshold;
   healthcheck?:
