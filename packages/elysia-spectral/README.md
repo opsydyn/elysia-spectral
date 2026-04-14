@@ -57,6 +57,8 @@ This tutorial takes a minimal Elysia app and adds startup OpenAPI linting with a
 
 ```bash
 bun add elysia @elysiajs/openapi @opsydyn/elysia-spectral
+# or
+npm install elysia @elysiajs/openapi @opsydyn/elysia-spectral
 ```
 
 2. Create a repo-level `spectral.yaml`.
