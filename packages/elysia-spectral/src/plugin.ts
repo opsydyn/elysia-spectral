@@ -39,8 +39,8 @@ export const spectralPlugin = (options: SpectralPluginOptions = {}) => {
       }
     });
 
-  if (options.healthcheck !== false) {
-    const healthcheckPath = options.healthcheck?.path ?? '/__openapi/health';
+  if (options.healthcheck) {
+    const healthcheckPath = options.healthcheck.path ?? '/__openapi/health';
 
     plugin = plugin.get(
       healthcheckPath,

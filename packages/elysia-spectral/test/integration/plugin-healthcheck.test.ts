@@ -4,6 +4,69 @@ import { Elysia, t } from 'elysia';
 import { spectralPlugin } from '../../src/plugin';
 
 describe('spectralPlugin healthcheck', () => {
+  it('does not expose a healthcheck route unless configured', async () => {
+    const infos: string[] = [];
+
+    const app = new Elysia()
+      .use(
+        openapi({
+          documentation: {
+            info: {
+              title: 'Startup Only API',
+              version: '1.0.0',
+            },
+            tags: [{ name: 'Users', description: 'User operations' }],
+          },
+        }),
+      )
+      .use(
+        spectralPlugin({
+          output: { console: false },
+          logger: {
+            info: (message) => infos.push(message),
+            warn: () => {},
+            error: () => {},
+          },
+        }),
+      )
+      .get('/users', () => [{ id: '1' }], {
+        response: {
+          200: t.Array(
+            t.Object({
+              id: t.String(),
+            }),
+          ),
+        },
+        detail: {
+          summary: 'List users',
+          description: 'Returns users.',
+          operationId: 'listUsers',
+          tags: ['Users'],
+        },
+      })
+      .listen(0);
+
+    try {
+      const response = await fetch(
+        `http://127.0.0.1:${app.server?.port}/__openapi/health`,
+      );
+
+      for (let attempt = 0; attempt < 5; attempt += 1) {
+        if (infos.includes('OpenAPI lint completed.')) {
+          break;
+        }
+
+        await Bun.sleep(25);
+      }
+
+      expect(response.status).toBe(404);
+      expect(infos).toContain('OpenAPI lint started.');
+      expect(infos).toContain('OpenAPI lint completed.');
+    } finally {
+      await app.stop();
+    }
+  });
+
   it('returns 200 and cached lint results after startup', async () => {
     const app = new Elysia()
       .use(

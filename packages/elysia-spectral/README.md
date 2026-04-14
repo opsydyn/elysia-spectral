@@ -13,7 +13,7 @@ This package implements the narrowed v0.1 scope from [project.md](../../project.
 - JSON report output
 - optional OpenAPI snapshot output
 - reusable core runtime for CI and tests
-- optional healthcheck endpoint for cached or fresh lint status
+- opt-in healthcheck endpoint for cached or fresh lint status
 
 ## Install
 
@@ -34,7 +34,7 @@ That boots `apps/dev-app` with:
 
 - OpenAPI UI at `/openapi`
 - raw OpenAPI JSON at `/openapi/json`
-- lint healthcheck at `/health/openapi-lint`
+- opt-in lint healthcheck at `/health/openapi-lint`
 - JSON lint report output at `./artifacts/openapi-lint.json`
 - OpenAPI snapshot output at `./elysia-spectral-dev-app.open-api.json`
 
@@ -203,12 +203,13 @@ Snapshot behavior:
 
 ## Healthcheck Endpoint
 
-When `healthcheck` is enabled, the plugin exposes a hidden route that returns lint status.
+When `healthcheck` is configured, the plugin exposes a hidden route that returns lint status.
 
 - `GET /health/openapi-lint` returns the cached startup result when available.
 - `GET /health/openapi-lint?fresh=1` forces a fresh lint run.
 - The route returns `200` when findings stay below `failOn` and `503` when they do not.
 - The route is hidden from generated OpenAPI docs.
+- No healthcheck route is added unless you pass `healthcheck: { ... }`.
 - If you want startup lint without blocking boot, set `startup.mode: 'report'`.
 - If you want the route without startup lint, set `startup.mode: 'off'` or `enabled: false` and use `?fresh=1` to lint on demand.
 
@@ -312,6 +313,6 @@ await runtime.run(app)
 - v0.1 supports local YAML rulesets, local JS or TS module rulesets, and in-memory ruleset objects.
 - `startup.mode: 'enforce'` is the default startup behavior.
 - `enabled: false` is still supported as a backward-compatible way to disable startup lint.
-- The healthcheck endpoint is enabled by default unless you set `healthcheck: false`.
+- The healthcheck endpoint is opt-in and only exists when you pass `healthcheck: { ... }`.
 - v0.1 does not include SARIF output.
 - In this monorepo, run package checks from the repo root with `bun run test`, `bun run build`, and `bun run typecheck`.
