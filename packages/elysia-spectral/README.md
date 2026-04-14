@@ -239,6 +239,8 @@ Example response:
 
 The plugin does not inspect private OpenAPI plugin internals. It resolves the generated OpenAPI JSON document through Elysia's public `app.handle(new Request(...))` API, using the configured `specPath` or the default `/openapi/json`.
 
+If `source.specPath` is wrong or the configured endpoint does not return valid JSON, the runtime fails with an actionable error that includes the exact path it tried and the expected fix.
+
 The same core runtime is exported for CI and tests:
 
 ```ts
@@ -255,6 +257,14 @@ const runtime = createOpenApiLintRuntime({
 
 const result = await runtime.run(app)
 ```
+
+Runtime observability:
+
+- `runtime.status` reports `idle`, `running`, `passed`, or `failed`
+- `runtime.startedAt`, `runtime.completedAt`, and `runtime.durationMs` describe the most recent run
+- `runtime.lastSuccess` keeps the last successful lint result
+- `runtime.lastFailure` keeps the last thrown runtime error summary
+- when used as a plugin, the same runtime object is available on `app.store.openApiLint`
 
 ## Options
 

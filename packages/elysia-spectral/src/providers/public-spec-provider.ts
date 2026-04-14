@@ -22,11 +22,12 @@ export class PublicSpecProvider extends BaseSpecProvider {
 
   async getSpec(): Promise<unknown> {
     const inProcessRequest = createInProcessRequest(this.specPath);
+    const sourceLabel = `app.handle(Request) at ${this.specPath}`;
 
     try {
       const response = await this.app.handle(inProcessRequest);
       if (response.ok) {
-        return await parseSpecResponse(response, `in-process ${this.specPath}`);
+        return await parseSpecResponse(response, sourceLabel, this.specPath);
       }
 
       if (this.options?.baseUrl) {
@@ -35,7 +36,10 @@ export class PublicSpecProvider extends BaseSpecProvider {
 
       const body = await safeReadBody(response);
       throw new PublicSpecProviderError(
-        `OpenAPI JSON endpoint ${this.specPath} returned ${response.status}${body ? `: ${body}` : ''}.`,
+        [
+          `Unable to load OpenAPI JSON from ${this.specPath} via ${sourceLabel}: received ${describeResponse(response)}${body ? ` with body ${body}.` : '.'}`,
+          `Fix: ensure @elysiajs/openapi is mounted and exposing "${this.specPath}", or update source.specPath to the correct OpenAPI JSON route.`,
+        ].join(' '),
       );
     } catch (error) {
       if (this.options?.baseUrl) {
@@ -47,7 +51,10 @@ export class PublicSpecProvider extends BaseSpecProvider {
       }
 
       throw new PublicSpecProviderError(
-        `Unable to resolve OpenAPI JSON endpoint ${this.specPath} with app.handle(Request).`,
+        [
+          `Unable to resolve OpenAPI JSON from ${this.specPath} via ${sourceLabel}.`,
+          'Fix: ensure the app can serve the configured OpenAPI JSON route, or set source.baseUrl if the document is only reachable over HTTP.',
+        ].join(' '),
         { cause: error },
       );
     }
@@ -68,24 +75,33 @@ export class PublicSpecProvider extends BaseSpecProvider {
     if (!response.ok) {
       const body = await safeReadBody(response);
       throw new PublicSpecProviderError(
-        `OpenAPI JSON endpoint ${url} returned ${response.status}${body ? `: ${body}` : ''}.`,
+        [
+          `Unable to load OpenAPI JSON from ${url}: received ${describeResponse(response)}${body ? ` with body ${body}.` : '.'}`,
+          `Fix: ensure the HTTP endpoint is reachable and returns the generated OpenAPI JSON, or update source.baseUrl/source.specPath.`,
+        ].join(' '),
         { cause },
       );
     }
 
-    return parseSpecResponse(response, url);
+    return parseSpecResponse(response, url, this.specPath);
   }
 }
 
 const parseSpecResponse = async (
   response: Response,
   sourceLabel: string,
+  specPath: string,
 ): Promise<unknown> => {
+  const body = await response.text();
+
   try {
-    return await response.json();
+    return JSON.parse(body) as unknown;
   } catch (error) {
     throw new PublicSpecProviderError(
-      `OpenAPI JSON endpoint ${sourceLabel} did not return valid JSON.`,
+      [
+        `Unable to parse OpenAPI JSON from ${sourceLabel}: response was not valid JSON${body.trim() ? ` (body preview: ${formatBodyPreview(body)}).` : '.'}`,
+        `Fix: ensure the configured endpoint for "${specPath}" returns the generated OpenAPI document as JSON.`,
+      ].join(' '),
       { cause: error },
     );
   }
@@ -96,8 +112,25 @@ const ensureTrailingSlash = (value: string): string =>
 
 const safeReadBody = async (response: Response): Promise<string> => {
   try {
-    return (await response.text()).trim();
+    const body = await response.text();
+
+    return body.trim() ? formatBodyPreview(body) : '';
   } catch {
     return '';
   }
+};
+
+const describeResponse = (response: Response): string =>
+  response.statusText
+    ? `${response.status} ${response.statusText}`
+    : String(response.status);
+
+const formatBodyPreview = (value: string): string => {
+  const normalized = value.replace(/\s+/g, ' ').trim();
+
+  if (normalized.length <= 120) {
+    return JSON.stringify(normalized);
+  }
+
+  return JSON.stringify(`${normalized.slice(0, 117)}...`);
 };

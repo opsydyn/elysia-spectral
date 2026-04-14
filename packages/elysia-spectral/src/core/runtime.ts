@@ -9,6 +9,7 @@ import { PublicSpecProvider } from '../providers/public-spec-provider';
 import type {
   LintRunResult,
   OpenApiLintRuntime,
+  OpenApiLintRuntimeFailure,
   SpectralPluginOptions,
   StartupLintMode,
 } from '../types';
@@ -23,7 +24,13 @@ export const createOpenApiLintRuntime = (
   let inFlight: Promise<LintRunResult> | null = null;
 
   const runtime: OpenApiLintRuntime = {
+    status: 'idle',
+    startedAt: null,
+    completedAt: null,
+    durationMs: null,
     latest: null,
+    lastSuccess: null,
+    lastFailure: null,
     running: false,
     async run(app: AnyElysia) {
       if (inFlight) {
@@ -31,82 +38,100 @@ export const createOpenApiLintRuntime = (
       }
 
       inFlight = (async () => {
+        const startedAt = new Date();
         runtime.running = true;
+        runtime.status = 'running';
+        runtime.startedAt = startedAt.toISOString();
+        runtime.completedAt = null;
+        runtime.durationMs = null;
         logger.info('OpenAPI lint started.');
 
-        const provider = new PublicSpecProvider(app, options.source);
-        const spec = (await provider.getSpec()) as Record<string, unknown>;
-        let snapshotPath: string | undefined;
-        let reportPath: string | undefined;
+        try {
+          const provider = new PublicSpecProvider(app, options.source);
+          const spec = (await provider.getSpec()) as Record<string, unknown>;
+          let snapshotPath: string | undefined;
+          let reportPath: string | undefined;
 
-        if (options.output?.specSnapshotPath) {
-          try {
-            const snapshotTarget =
-              options.output.specSnapshotPath === true
-                ? await resolveDefaultSpecSnapshotPath()
-                : options.output.specSnapshotPath;
-            snapshotPath = await writeSpecSnapshot(
-              snapshotTarget,
-              spec,
-              options.output.pretty !== false,
+          if (options.output?.specSnapshotPath) {
+            try {
+              const snapshotTarget =
+                options.output.specSnapshotPath === true
+                  ? await resolveDefaultSpecSnapshotPath()
+                  : options.output.specSnapshotPath;
+              snapshotPath = await writeSpecSnapshot(
+                snapshotTarget,
+                spec,
+                options.output.pretty !== false,
+              );
+              logger.info(
+                `OpenAPI lint wrote spec snapshot to ${snapshotPath}.`,
+              );
+            } catch (error) {
+              logger.warn(
+                `OpenAPI lint could not write spec snapshot: ${error instanceof Error ? error.message : String(error)}`,
+              );
+            }
+          }
+
+          const loadedRuleset = await loadResolvedRuleset(options.ruleset);
+          if (loadedRuleset.source?.autodiscovered) {
+            logger.info(
+              `OpenAPI lint autodiscovered ruleset ${loadedRuleset.source.path} and merged it with the package default ruleset.`,
             );
-            logger.info(`OpenAPI lint wrote spec snapshot to ${snapshotPath}.`);
-          } catch (error) {
-            logger.warn(
-              `OpenAPI lint could not write spec snapshot: ${error instanceof Error ? error.message : String(error)}`,
+          } else if (loadedRuleset.source?.path) {
+            logger.info(
+              `OpenAPI lint loaded ruleset ${loadedRuleset.source.path}.`,
             );
           }
-        }
 
-        const loadedRuleset = await loadResolvedRuleset(options.ruleset);
-        if (loadedRuleset.source?.autodiscovered) {
-          logger.info(
-            `OpenAPI lint autodiscovered ruleset ${loadedRuleset.source.path} and merged it with the package default ruleset.`,
-          );
-        } else if (loadedRuleset.source?.path) {
-          logger.info(
-            `OpenAPI lint loaded ruleset ${loadedRuleset.source.path}.`,
-          );
-        }
-
-        const result = await lintOpenApi(spec, loadedRuleset.ruleset);
-        if (snapshotPath) {
-          result.artifacts = {
-            specSnapshotPath: snapshotPath,
-          };
-        }
-
-        runtime.latest = result;
-
-        if (options.output?.jsonReportPath) {
-          try {
-            reportPath = await writeJsonReport(
-              options.output.jsonReportPath,
-              result,
-              options.output.pretty !== false,
-            );
-            logger.info(`OpenAPI lint wrote JSON report to ${reportPath}.`);
-          } catch (error) {
-            logger.warn(
-              `OpenAPI lint could not write JSON report: ${error instanceof Error ? error.message : String(error)}`,
-            );
+          const result = await lintOpenApi(spec, loadedRuleset.ruleset);
+          if (snapshotPath) {
+            result.artifacts = {
+              specSnapshotPath: snapshotPath,
+            };
           }
-        }
 
-        if (reportPath) {
-          result.artifacts = {
-            ...result.artifacts,
-            jsonReportPath: reportPath,
-          };
-        }
+          runtime.latest = result;
 
-        if (options.output?.console !== false) {
-          reportToConsole(result, logger);
-        }
+          if (options.output?.jsonReportPath) {
+            try {
+              reportPath = await writeJsonReport(
+                options.output.jsonReportPath,
+                result,
+                options.output.pretty !== false,
+              );
+              logger.info(`OpenAPI lint wrote JSON report to ${reportPath}.`);
+            } catch (error) {
+              logger.warn(
+                `OpenAPI lint could not write JSON report: ${error instanceof Error ? error.message : String(error)}`,
+              );
+            }
+          }
 
-        logger.info('OpenAPI lint completed.');
-        enforceThreshold(result, options.failOn ?? 'error');
-        return result;
+          if (reportPath) {
+            result.artifacts = {
+              ...result.artifacts,
+              jsonReportPath: reportPath,
+            };
+          }
+
+          if (options.output?.console !== false) {
+            reportToConsole(result, logger);
+          }
+
+          logger.info('OpenAPI lint completed.');
+          enforceThreshold(result, options.failOn ?? 'error');
+
+          runtime.status = 'passed';
+          runtime.lastSuccess = result;
+          finalizeRuntimeRun(runtime, startedAt);
+          return result;
+        } catch (error) {
+          runtime.status = 'failed';
+          runtime.lastFailure = toRuntimeFailure(error);
+          finalizeRuntimeRun(runtime, startedAt);
+          throw error;
+        }
       })();
 
       try {
@@ -120,6 +145,21 @@ export const createOpenApiLintRuntime = (
 
   return runtime;
 };
+
+const finalizeRuntimeRun = (
+  runtime: OpenApiLintRuntime,
+  startedAt: Date,
+): void => {
+  const completedAt = new Date();
+  runtime.completedAt = completedAt.toISOString();
+  runtime.durationMs = completedAt.getTime() - startedAt.getTime();
+};
+
+const toRuntimeFailure = (error: unknown): OpenApiLintRuntimeFailure => ({
+  name: error instanceof Error ? error.name : 'Error',
+  message: error instanceof Error ? error.message : String(error),
+  generatedAt: new Date().toISOString(),
+});
 
 export const isEnabled = (options: SpectralPluginOptions = {}): boolean => {
   return resolveStartupMode(options) !== 'off';

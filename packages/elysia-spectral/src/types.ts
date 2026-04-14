@@ -7,6 +7,12 @@ export type LintSeverity = 'error' | 'warn' | 'info' | 'hint';
 
 export type StartupLintMode = 'enforce' | 'report' | 'off';
 
+export type OpenApiLintRuntimeStatus =
+  | 'idle'
+  | 'running'
+  | 'passed'
+  | 'failed';
+
 export type SpectralLogger = {
   info: (message: string) => void;
   warn: (message: string) => void;
@@ -78,8 +84,20 @@ export interface SpecProvider {
   getSpec(): Promise<unknown>;
 }
 
+export type OpenApiLintRuntimeFailure = {
+  name: string;
+  message: string;
+  generatedAt: string;
+};
+
 export type OpenApiLintRuntime = {
+  status: OpenApiLintRuntimeStatus;
+  startedAt: string | null;
+  completedAt: string | null;
+  durationMs: number | null;
   latest: LintRunResult | null;
+  lastSuccess: LintRunResult | null;
+  lastFailure: OpenApiLintRuntimeFailure | null;
   running: boolean;
   run: (app: AnyElysia) => Promise<LintRunResult>;
 };
