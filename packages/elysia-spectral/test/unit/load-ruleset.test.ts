@@ -186,6 +186,45 @@ describe('loadRuleset', () => {
     ).toBe(true);
   });
 
+  it('merges object-form severity override of an extends-inherited rule without rejecting it', async () => {
+    // Regression: { severity: warn } object form for a spectral:oas rule was passed
+    // directly into the merged ruleset, causing Spectral to reject it as an incomplete
+    // rule definition (missing given/then). The fix normalises it to the bare string.
+    const ruleset = await loadRuleset(
+      undefined,
+      './fixtures/rulesets/autodiscover-severity-override',
+    );
+    const result = await lintOpenApi(
+      fixtureSpec as Record<string, unknown>,
+      ruleset,
+    );
+
+    // operation-tags override should survive — the fixture spec triggers it
+    expect(
+      result.findings.some((finding) => finding.code === 'operation-tags'),
+    ).toBe(true);
+  });
+
+  it('merges object-form severity override of a default-ruleset rule without clobbering its definition', async () => {
+    // Regression: { severity: error } for elysia-operation-summary replaced the full
+    // rule definition (given/then) in the merged rules, causing Spectral to reject it.
+    // The fix deep-merges the partial override with the base rule.
+    const ruleset = await loadRuleset(
+      undefined,
+      './fixtures/rulesets/autodiscover-severity-override',
+    );
+    const result = await lintOpenApi(
+      fixtureSpec as Record<string, unknown>,
+      ruleset,
+    );
+
+    expect(
+      result.findings.some(
+        (finding) => finding.code === 'elysia-operation-summary',
+      ),
+    ).toBe(true);
+  });
+
   it('can skip default-rule merging for autodiscovered rulesets', async () => {
     const loaded = await loadResolvedRuleset(undefined, {
       baseDir: './fixtures/rulesets/autodiscover-yaml',

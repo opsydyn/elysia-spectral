@@ -412,6 +412,34 @@ const normalizeRulesetDefinition = (
   return normalized as RulesetDefinition;
 };
 
+const mergeRuleEntry = (base: unknown, override: unknown): unknown => {
+  // Primitive (string, number, false): valid Spectral severity shorthand, pass through
+  if (!isRecord(override)) {
+    return override;
+  }
+
+  // Full rule definition: has given or then, replace entirely
+  if ('given' in override || 'then' in override) {
+    return override;
+  }
+
+  // Partial override object (no given, no then)
+  if (isRecord(base) && ('given' in base || 'then' in base)) {
+    // Base is a full rule — deep-merge to preserve given/then
+    return { ...base, ...override };
+  }
+
+  // No base full rule (rule comes from extends). Normalise a single-field
+  // { severity: X } object to the bare severity string so Spectral treats it
+  // as a valid inherited-rule override rather than an incomplete rule definition.
+  const keys = Object.keys(override);
+  if (keys.length === 1 && keys[0] === 'severity') {
+    return override.severity;
+  }
+
+  return override;
+};
+
 const mergeRulesets = (
   baseRuleset: RulesetDefinition,
   overrideRuleset: RulesetDefinition,
@@ -423,10 +451,11 @@ const mergeRulesets = (
   const overrideRules = isRecord(mergedOverride.rules)
     ? mergedOverride.rules
     : {};
-  const mergedRules = {
-    ...baseRules,
-    ...overrideRules,
-  };
+
+  const mergedRules: Record<string, unknown> = { ...baseRules };
+  for (const [name, overrideRule] of Object.entries(overrideRules)) {
+    mergedRules[name] = mergeRuleEntry(baseRules[name], overrideRule);
+  }
 
   const baseExtends = toExtendsArray(mergedBase.extends);
   const overrideExtends = toExtendsArray(mergedOverride.extends);

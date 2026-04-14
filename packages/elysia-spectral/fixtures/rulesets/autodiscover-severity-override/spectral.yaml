@@ -1,0 +1,15 @@
+extends:
+  - spectral:oas
+
+rules:
+  # Object-form severity override of a spectral:oas inherited rule (no base in defaultRuleset)
+  # Previously clobbered: { severity: warn } has no given/then so Spectral rejected it.
+  # After fix: normalised to the bare string "warn".
+  operation-tags:
+    severity: warn
+
+  # Object-form severity override of a built-in elysia-spectral rule (base exists in defaultRuleset)
+  # Previously clobbered: { severity: error } replaced the full rule definition.
+  # After fix: deep-merged with the base rule, preserving given/then.
+  elysia-operation-summary:
+    severity: error
