@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.5](https://github.com/opsydyn/elysia-spectral/compare/v0.2.4...v0.2.5) (2026-04-14)
+
+
+### Bug Fixes
+
+* deep-merge partial rule overrides in mergeRulesets ([4308196](https://github.com/opsydyn/elysia-spectral/commit/4308196ad4b017d94ac015239c51815c26cafb20))
+
 ## [0.2.4](https://github.com/opsydyn/elysia-spectral/compare/v0.2.3...v0.2.4) (2026-04-14)
 
 
