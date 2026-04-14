@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.0](https://github.com/opsydyn/elysia-spectral/compare/v0.2.5...v0.3.0) (2026-04-14)
+
+
+### Features
+
+* add recommended, server, and strict governance presets ([692061e](https://github.com/opsydyn/elysia-spectral/commit/692061e23ba5735fc0ad1a8d1a9110ced1f869fe))
+
 ## [0.2.5](https://github.com/opsydyn/elysia-spectral/compare/v0.2.4...v0.2.5) (2026-04-14)
 
 
