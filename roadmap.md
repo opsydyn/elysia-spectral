@@ -2,38 +2,50 @@
 
 ## purpose
 
-this roadmap turns the current v0.1 implementation into an extensible, production-grade OpenAPI linting plugin for Elysia without breaking the core design constraint: stay thin, rely on `@elysiajs/openapi`, and avoid building a separate contract system.
+this roadmap turns the current `v0.1` implementation into an extensible, production-grade OpenAPI linting plugin for Elysia without breaking the core design constraint: stay thin, rely on `@elysiajs/openapi`, and avoid building a separate contract system.
 
 ## current state
 
-the repository already has a working v0.1:
+the repository is now beyond the original earliest `v0.1` baseline.
 
-- startup linting exists
-- threshold-based failure exists
-- local YAML and in-memory rulesets exist
-- console and JSON outputs exist
-- OpenAPI snapshot output exists
-- a reusable runtime exists for CI and tests
-- an optional lint endpoint exists for cached and fresh checks
-- tests are passing for the current scope
+implemented today:
 
-the current limitations are structural, not cosmetic:
+- startup linting
+- threshold-based failure
+- startup modes: `enforce`, `report`, and `off`
+- opt-in healthcheck endpoint for cached and fresh runs
+- repo-level ruleset autodiscovery
+- local YAML rulesets
+- local JS and TS ruleset modules
+- in-memory rulesets
+- custom function exports from module rulesets
+- console output with package-owned formatting
+- JSON report output
+- OpenAPI snapshot output
+- artifact write failure policy: warn or error
+- reusable runtime for CI and tests
+- runtime observability fields:
+  - `status`
+  - `startedAt`
+  - `completedAt`
+  - `durationMs`
+  - `latest`
+  - `lastSuccess`
+  - `lastFailure`
+- actionable spec-resolution errors
+- single-flight run deduplication
 
-- route exposure is too implicit for production use
-- runtime state is too small for operational use
-- ruleset loading is too narrow for team-scale customization
-- outputs are artifact flags, not extensible sinks
-- the built-in ruleset is useful but too light for serious API governance
+remaining limitations are now more architectural than functional:
 
-the current user-customization path should stay simple:
-
-- repo-level `spectral.yaml` should be the default way for teams to define their own rules
-- package defaults should remain available as the base policy
-- service-level overrides should be possible without forking this package
+- output handling is still convenience flags rather than sink abstractions
+- ruleset resolution is flexible but not yet a formal resolver pipeline
+- first-party policy presets are still light
+- CI outputs are still oriented around JSON artifacts rather than broader machine-consumable formats
+- the codebase is still one package even though core/plugin/preset responsibilities are becoming clearer
 
 ## target state
 
-the target v1 should look like this:
+the target `v1` should look like this:
 
 - thin Elysia plugin adapter
 - reusable lint engine that can run in app startup, CI, or manual tooling
@@ -51,91 +63,97 @@ the target v1 should look like this:
 - separate engine concerns from framework adapter concerns
 - optimize for CI determinism and operator clarity
 
-## milestone 0.2
+## milestone status
 
-goal: make the current plugin safe and predictable enough for wider internal use.
+### milestone 0.2
 
-scope:
+goal: make the plugin safe and predictable enough for wider internal use.
 
-- make the healthcheck endpoint opt-in instead of effectively on by default
-- separate startup linting from endpoint exposure in the options model
-- align docs with real behavior and supported defaults
-- add tests for disabled endpoint behavior and startup-only behavior
-- add tests for misconfigured spec path and invalid OpenAPI JSON responses
+status: mostly complete
 
-acceptance criteria:
+completed:
 
-- no route is added unless explicitly configured
-- startup lint can be enabled without exposing any endpoint
-- README and examples match runtime behavior exactly
+- healthcheck route is opt-in
+- startup linting is separated from route exposure
+- docs and examples match the current defaults
+- tests cover startup-only behavior and disabled endpoint behavior
+- tests cover misconfigured spec path and invalid OpenAPI JSON responses
 - failure messages for spec resolution are actionable
 
-why this comes first:
+remaining:
 
-- this is the highest-value safety fix with the smallest design surface
-- it removes the biggest production surprise before adding more features
+- no major remaining implementation work in `0.2`
 
-## milestone 0.3
+acceptance status:
+
+- no route is added unless explicitly configured: complete
+- startup lint can be enabled without exposing any endpoint: complete
+- README and examples match runtime behavior exactly: complete
+- failure messages for spec resolution are actionable: complete
+
+### milestone 0.3
 
 goal: make the runtime operationally credible.
 
-scope:
+status: mostly complete
 
-- expand runtime state to include status, startedAt, completedAt, durationMs, lastSuccess, lastFailure, and source information
-- add single-flight protection so concurrent fresh runs do not trigger duplicate lint executions
-- add explicit execution modes such as `startup`, `manual`, and `off`
-- support non-fatal and fatal artifact write policies
-- improve console output so summaries stay short while failures remain debuggable
+completed:
 
-acceptance criteria:
+- runtime state includes `status`, `startedAt`, `completedAt`, `durationMs`, `lastSuccess`, and `lastFailure`
+- single-flight protection prevents duplicate concurrent runs
+- startup execution modes are explicit
+- artifact write failure policy supports warn or error
+- console output is significantly more legible and package-owned
+- startup report mode is package-owned rather than app-owned
 
-- repeated fresh requests during a run share the same in-flight execution
-- runtime state is queryable and useful for debugging
-- CI can fail on report write failures when configured
-- local development stays ergonomic and does not regress
+remaining:
 
-why this matters:
+- decide whether the healthcheck should expose richer runtime metadata directly
+- decide whether run source metadata should be tracked explicitly, for example `startup`, `fresh-healthcheck`, or `manual`
+- optional final console polish to unify the `report` continuation line even further with the full report block
 
-- production-grade tooling needs runtime behavior that is observable and deterministic under load
+acceptance status:
 
-## milestone 0.4
+- repeated fresh requests during a run share the same in-flight execution: complete
+- runtime state is queryable and useful for debugging: complete
+- CI can fail on report write failures when configured: complete
+- local development stays ergonomic and does not regress: complete
+
+### milestone 0.4
 
 goal: make policy and output extensible without bloating the plugin.
 
-scope:
+status: partial foundation complete
 
-- replace the fixed `output` model with sink-style output abstractions
-- introduce a ruleset resolver pipeline instead of only local YAML loading
-- treat repo-root rulesets as the primary customization path for application teams
-- support rulesets from:
-  - repo-root `./spectral.yaml`
-  - package default preset
-  - local YAML
-  - imported object
-  - local JS or TS module
-- support built-in sinks for:
-  - console
-  - JSON artifact
-  - spec snapshot
-  - SARIF
-- preserve the simple top-level API by mapping convenience options onto the new engine interfaces
+already complete:
+
+- repo-root rulesets are the primary customization path
+- current simple usage remains supported
+- local YAML, JS, TS, and in-memory rulesets work
+- module rulesets can export custom functions
+- autodiscovery and default-rule merging are implemented
+
+not yet complete:
+
+- replace the fixed `output` model with sink-style abstractions
+- formalize a ruleset resolver pipeline instead of just richer loader behavior
+- support built-in SARIF output
+- expose extension points cleanly enough that users can add new output or resolver strategies without patching runtime code
 
 acceptance criteria:
 
-- a team can drop `spectral.yaml` at the app or repo root and use it without extra package wiring
-- current simple usage remains supported
-- advanced users can add new ruleset and output strategies without patching core runtime code
-- SARIF output works in CI systems that consume code scanning artifacts
+- a team can drop `spectral.yaml` at the app or repo root and use it without extra package wiring: complete
+- current simple usage remains supported: complete
+- advanced users can add new ruleset and output strategies without patching core runtime code: not yet complete
+- SARIF output works in CI systems that consume code scanning artifacts: not yet complete
 
-why this matters:
-
-- this is the main extensibility breakpoint between a useful plugin and a platform-quality library
-
-## milestone 0.5
+### milestone 0.5
 
 goal: ship stronger first-party governance presets.
 
-scope:
+status: not started in earnest
+
+planned scope:
 
 - add preset policy packs:
   - `recommended`
@@ -145,51 +163,41 @@ scope:
   - operation summaries
   - descriptions
   - tags
-  - operationId presence and consistency
+  - `operationId` presence and consistency
   - response schema coverage
   - reusable error model expectations
   - examples where they materially improve downstream generation
 - document which rules are style-focused versus contract-quality-focused
 
-acceptance criteria:
-
-- a team can adopt the plugin with a preset and get meaningful lint value without authoring a custom ruleset first
-- presets are documented with rationale and expected false-positive tradeoffs
-- unhappy-path fixtures prove the stricter rules catch real issues
-
-why this matters:
-
-- a production-grade linting package needs an opinionated default path, not just raw Spectral plumbing
-
-## milestone 0.6
+### milestone 0.6
 
 goal: make CI and downstream tooling first-class.
 
-scope:
+status: partially enabled, not yet formalized
 
-- add a documented CI entrypoint built around the core runtime
-- add stable result metadata suitable for PR annotations and artifact retention
-- add optional JUnit output if needed by common CI systems
-- document contract snapshot workflows for OpenAPI diff review
-- document post-lint chaining into downstream generation such as Bruno or SDK workflows
+already present:
 
-acceptance criteria:
+- reusable core runtime works in CI and tests
+- JSON output and spec snapshots are available
+- artifact write policy can enforce CI correctness
 
-- CI usage is documented as a supported primary workflow, not just an example
-- outputs are stable enough for automation across multiple repositories
-- downstream tooling flows can be composed after successful lint runs
+not yet formalized:
 
-why this matters:
+- documented CI entrypoint as a primary workflow
+- stable machine-oriented formats beyond JSON
+- optional JUnit output if needed
+- documented snapshot and diff workflows
+- documented chaining into downstream generation or contract tooling
 
-- `project.md` explicitly targets CI friendliness and downstream tooling, so the package should support that as a first-class path
-
-## milestone 1.0
+### milestone 1.0
 
 goal: stabilize the architecture and package boundaries.
 
-scope:
+status: future
 
-- split the codebase into clear layers if the added surface justifies it:
+planned scope:
+
+- split the codebase into clearer layers if justified:
   - engine/core
   - Elysia plugin adapter
   - preset packages or preset modules
@@ -199,22 +207,15 @@ scope:
   - result model
   - sink and resolver extension points
 - audit defaults for backwards compatibility and safe production behavior
-- publish migration notes from v0.1-style configuration to v1 configuration
-
-acceptance criteria:
-
-- the public API can be versioned confidently
-- extension points are documented and tested
-- the package remains thin from the point of view of Elysia users
+- publish migration notes from `v0.1` style configuration to `v1`
 
 ## recommended implementation order
 
-1. fix safety defaults and option clarity in 0.2
-2. harden runtime behavior in 0.3
-3. add extensibility seams in 0.4
-4. strengthen policy value in 0.5
-5. formalize CI and downstream workflows in 0.6
-6. stabilize and package for v1.0
+1. finish the remaining runtime polish in `0.3`
+2. formalize extensibility seams in `0.4`
+3. strengthen first-party policy value in `0.5`
+4. formalize CI and downstream workflows in `0.6`
+5. stabilize architecture and packaging for `1.0`
 
 ## explicit non-goals
 
@@ -228,20 +229,20 @@ these should stay out unless the product direction changes:
 
 ## next concrete actions
 
-the next high-leverage implementation tasks are:
+the next high-leverage implementation tasks are now:
 
-1. change endpoint exposure so it is opt-in only
-2. redesign the options shape around execution mode versus exposure mode
-3. add tests for misconfigured spec resolution and disabled endpoints
-4. introduce richer runtime state and in-flight run deduplication
-5. document repo-root `spectral.yaml` as the default customization path
-6. design sink and ruleset resolver interfaces before adding new output types
+1. design sink-style output interfaces behind the current convenience options
+2. add SARIF output as the first non-JSON machine-readable sink
+3. formalize ruleset resolution as a resolver pipeline rather than just an enriched loader
+4. define the first preset set for `recommended`, `server`, and `strict`
+5. document CI as a primary supported workflow using `createOpenApiLintRuntime`
+6. optionally add explicit runtime source metadata such as `startup`, `healthcheck`, or `manual`
 
 ## done definition for the next release
 
-the next release is successful if:
+the next release after `v0.1` is successful if:
 
-- production defaults are safe
-- the docs match the actual behavior
-- runtime behavior is more observable
-- the path to extensibility is visible in the code structure, not just in notes
+- the roadmap matches the real implementation state
+- output and ruleset extensibility have a visible path in code, not just notes
+- the package can emit at least one additional CI-oriented machine-readable format
+- the first preset story is concrete enough to start implementation

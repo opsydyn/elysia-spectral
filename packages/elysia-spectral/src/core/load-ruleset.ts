@@ -1,8 +1,11 @@
 import { access, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
-import type { RulesetDefinition } from '@stoplight/spectral-core';
-import type { RulesetFunction, RulesetFunctionWithValidator } from '@stoplight/spectral-core';
+import type {
+  RulesetDefinition,
+  RulesetFunction,
+  RulesetFunctionWithValidator,
+} from '@stoplight/spectral-core';
 import spectralFunctions from '@stoplight/spectral-functions';
 import spectralRulesets from '@stoplight/spectral-rulesets';
 import YAML from 'yaml';
@@ -47,7 +50,7 @@ type AvailableFunctionMap = Record<
   RulesetFunction<any, any> | RulesetFunctionWithValidator<any, any>
 >;
 
-const extendsMap: Record<string, RulesetDefinition> = {
+const extendsMap: Partial<Record<string, RulesetDefinition>> = {
   'spectral:oas': oas as unknown as RulesetDefinition,
 };
 
@@ -79,6 +82,34 @@ export type LoadedRuleset = {
   };
 };
 
+export type ResolvedRulesetCandidate = {
+  ruleset: unknown;
+  source?: LoadedRuleset['source'];
+};
+
+export type RulesetResolverInput =
+  | string
+  | RulesetDefinition
+  | Record<string, unknown>
+  | undefined;
+
+export type RulesetResolverContext = {
+  baseDir: string;
+  defaultRuleset: RulesetDefinition;
+  mergeAutodiscoveredWithDefault: boolean;
+};
+
+export type RulesetResolver = (
+  input: RulesetResolverInput,
+  context: RulesetResolverContext,
+) => Promise<ResolvedRulesetCandidate | undefined>;
+
+export type LoadResolvedRulesetOptions = {
+  baseDir?: string;
+  resolvers?: RulesetResolver[];
+  mergeAutodiscoveredWithDefault?: boolean;
+};
+
 export class RulesetLoadError extends Error {
   constructor(message: string, options?: { cause?: unknown }) {
     super(message);
@@ -91,65 +122,152 @@ export class RulesetLoadError extends Error {
 }
 
 export const loadRuleset = async (
-  input?: string | RulesetDefinition | Record<string, unknown>,
-  baseDir = process.cwd(),
+  input?: RulesetResolverInput,
+  baseDirOrOptions: string | LoadResolvedRulesetOptions = process.cwd(),
 ): Promise<RulesetDefinition> => {
-  return (await loadResolvedRuleset(input, baseDir)).ruleset;
+  return (await loadResolvedRuleset(input, baseDirOrOptions)).ruleset;
 };
 
 export const loadResolvedRuleset = async (
-  input?: string | RulesetDefinition | Record<string, unknown>,
-  baseDir = process.cwd(),
+  input?: RulesetResolverInput,
+  baseDirOrOptions: string | LoadResolvedRulesetOptions = process.cwd(),
 ): Promise<LoadedRuleset> => {
-  if (!input) {
-    const autodiscoveredPath = await findAutodiscoveredRulesetPath(baseDir);
-    if (autodiscoveredPath) {
-      const loaded = await loadResolvedRuleset(autodiscoveredPath, baseDir);
+  const options = normalizeLoadResolvedRulesetOptions(baseDirOrOptions);
+  const context: RulesetResolverContext = {
+    baseDir: options.baseDir,
+    defaultRuleset,
+    mergeAutodiscoveredWithDefault: options.mergeAutodiscoveredWithDefault,
+  };
 
-      return {
-        ruleset: mergeRulesets(defaultRuleset, loaded.ruleset),
-        source: {
-          path: autodiscoveredPath,
-          autodiscovered: true,
-          mergedWithDefault: true,
-        },
-      };
+  for (const resolver of options.resolvers) {
+    const loaded = await resolver(input, context);
+    if (loaded) {
+      const normalized = {
+        ruleset: normalizeRulesetDefinition(loaded.ruleset),
+      } as LoadedRuleset;
+
+      if (loaded.source) {
+        normalized.source = loaded.source;
+      }
+
+      return normalized;
     }
+  }
 
+  if (input === undefined) {
     return { ruleset: defaultRuleset };
   }
 
-  if (typeof input === 'string') {
-    const resolvedPath = path.resolve(baseDir, input);
+  throw new RulesetLoadError('Ruleset input could not be resolved.');
+};
 
-    if (isYamlRulesetPath(resolvedPath)) {
-      return {
-        ruleset: await loadYamlRuleset(resolvedPath),
-        source: {
-          path: input,
-          autodiscovered: false,
-          mergedWithDefault: false,
-        },
-      };
-    }
-
-    if (!isModuleRulesetPath(resolvedPath)) {
-      throw new RulesetLoadError(
-        `Unsupported ruleset path: ${input}. Supported local rulesets are .yaml, .yml, .js, .mjs, .cjs, .ts, .mts, and .cts.`,
-      );
-    }
-
+const normalizeLoadResolvedRulesetOptions = (
+  value: string | LoadResolvedRulesetOptions,
+): Required<LoadResolvedRulesetOptions> => {
+  if (typeof value === 'string') {
     return {
-      ruleset: await loadModuleRuleset(resolvedPath),
+      baseDir: value,
+      resolvers: defaultRulesetResolvers,
+      mergeAutodiscoveredWithDefault: true,
+    };
+  }
+
+  return {
+    baseDir: value.baseDir ?? process.cwd(),
+    resolvers: value.resolvers ?? defaultRulesetResolvers,
+    mergeAutodiscoveredWithDefault:
+      value.mergeAutodiscoveredWithDefault ?? true,
+  };
+};
+
+const resolveAutodiscoveredRuleset: RulesetResolver = async (
+  input,
+  context,
+) => {
+  if (input !== undefined) {
+    return undefined;
+  }
+
+  const autodiscoveredPath = await findAutodiscoveredRulesetPath(context.baseDir);
+  if (!autodiscoveredPath) {
+    return undefined;
+  }
+
+  const loaded = await loadResolvedPathRuleset(autodiscoveredPath, context);
+  if (!context.mergeAutodiscoveredWithDefault) {
+    return {
+      ...loaded,
       source: {
-        path: input,
+        path: autodiscoveredPath,
+        autodiscovered: true,
+        mergedWithDefault: false,
+      },
+    };
+  }
+
+  return {
+    ruleset: mergeRulesets(context.defaultRuleset, loaded.ruleset),
+    source: {
+      path: autodiscoveredPath,
+      autodiscovered: true,
+      mergedWithDefault: true,
+    },
+  };
+};
+
+const resolvePathRuleset: RulesetResolver = async (input, context) => {
+  if (typeof input !== 'string') {
+    return undefined;
+  }
+
+  return await loadResolvedPathRuleset(input, context);
+};
+
+const resolveInlineRuleset: RulesetResolver = async (input) => {
+  if (input === undefined || typeof input === 'string') {
+    return undefined;
+  }
+
+  return { ruleset: normalizeRulesetDefinition(input) };
+};
+
+export const defaultRulesetResolvers: RulesetResolver[] = [
+  resolveAutodiscoveredRuleset,
+  resolvePathRuleset,
+  resolveInlineRuleset,
+];
+
+const loadResolvedPathRuleset = async (
+  inputPath: string,
+  context: RulesetResolverContext,
+): Promise<LoadedRuleset> => {
+  const resolvedPath = path.resolve(context.baseDir, inputPath);
+
+  if (isYamlRulesetPath(resolvedPath)) {
+    return {
+      ruleset: await loadYamlRuleset(resolvedPath),
+      source: {
+        path: inputPath,
         autodiscovered: false,
         mergedWithDefault: false,
       },
     };
   }
 
-  return { ruleset: normalizeRulesetDefinition(input) };
+  if (!isModuleRulesetPath(resolvedPath)) {
+    throw new RulesetLoadError(
+      `Unsupported ruleset path: ${inputPath}. Supported local rulesets are .yaml, .yml, .js, .mjs, .cjs, .ts, .mts, and .cts.`,
+    );
+  }
+
+  return {
+    ruleset: await loadModuleRuleset(resolvedPath),
+    source: {
+      path: inputPath,
+      autodiscovered: false,
+      mergedWithDefault: false,
+    },
+  };
 };
 
 const findAutodiscoveredRulesetPath = async (
@@ -161,8 +279,10 @@ const findAutodiscoveredRulesetPath = async (
     try {
       await access(candidatePath);
       return `./${filename}`;
-    } catch {
-      // keep searching
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
+        throw error;
+      }
     }
   }
 
@@ -224,7 +344,7 @@ const loadModuleRuleset = async (
 
 const resolveModuleRulesetValue = (imported: unknown): unknown => {
   if (!isRecord(imported)) {
-    return imported;
+    return undefined;
   }
 
   if ('default' in imported) {
@@ -311,6 +431,9 @@ const mergeRulesets = (
     ...mergedBase,
     ...mergedOverride,
   };
+
+  delete merged.extends;
+  delete merged.rules;
 
   if (mergedExtends.length > 0) {
     merged.extends = mergedExtends;

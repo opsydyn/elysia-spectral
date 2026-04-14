@@ -4,7 +4,7 @@
   "include-component-in-tag": false,
   "packages": {
     "packages/elysia-spectral": {
-      "package-name": "elysia-spectral",
+      "package-name": "@opsydyn/elysia-spectral",
       "changelog-path": "CHANGELOG.md"
     }
   }

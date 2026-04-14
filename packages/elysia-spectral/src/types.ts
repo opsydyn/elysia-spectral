@@ -21,6 +21,29 @@ export type SpectralLogger = {
   error: (message: string) => void;
 };
 
+export type OpenApiLintArtifacts = {
+  jsonReportPath?: string;
+  junitReportPath?: string;
+  sarifReportPath?: string;
+  specSnapshotPath?: string;
+};
+
+export type OpenApiLintSinkContext = {
+  spec: Record<string, unknown>;
+  logger: SpectralLogger;
+};
+
+export type OpenApiLintSink = {
+  name: string;
+  write: (
+    result: LintRunResult,
+    context: OpenApiLintSinkContext,
+  ) =>
+    | void
+    | Partial<OpenApiLintArtifacts>
+    | Promise<void | Partial<OpenApiLintArtifacts>>;
+};
+
 export type SpectralPluginOptions = {
   ruleset?: string | RulesetDefinition | Record<string, unknown>;
   failOn?: SeverityThreshold;
@@ -32,9 +55,12 @@ export type SpectralPluginOptions = {
   output?: {
     console?: boolean;
     jsonReportPath?: string;
+    junitReportPath?: string;
+    sarifReportPath?: string;
     specSnapshotPath?: string | true;
     pretty?: boolean;
     artifactWriteFailures?: ArtifactWriteFailureMode;
+    sinks?: OpenApiLintSink[];
   };
   source?: {
     specPath?: string;
@@ -76,10 +102,7 @@ export type LintRunResult = {
     hint: number;
     total: number;
   };
-  artifacts?: {
-    jsonReportPath?: string;
-    specSnapshotPath?: string;
-  };
+  artifacts?: OpenApiLintArtifacts;
   findings: LintFinding[];
 };
 

@@ -9,7 +9,7 @@ export const spectralPlugin = (options: SpectralPluginOptions = {}) => {
   const hostAppRef: { current: AnyElysia | null } = { current: null };
   const reporter = resolveReporter(options.logger);
 
-  let plugin = new Elysia({ name: 'elysia-spectral' })
+  let plugin = new Elysia({ name: '@opsydyn/elysia-spectral' })
     .state('openApiLint', runtime)
     .onStart(async (context) => {
       const app = ((context as { app?: AnyElysia }).app ??

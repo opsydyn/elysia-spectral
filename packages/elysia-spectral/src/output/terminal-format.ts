@@ -29,7 +29,7 @@ export const formatPassCard = (
   const lines = [
     `${styleText(['bold', 'white'], 'OPENAPI LINT')}  ${styleText(['bold', 'white', 'bgGreen'], 'PASS')}`,
     `${styleText(['bold', 'green'], String(summary.error))} errors  ${styleText(['bold', 'green'], String(summary.warn))} warns  ${styleText(['bold', 'green'], String(summary.info))} info`,
-    styleText(['bold', 'green'], 'SHIP IT RIGHT, SPEC IS TIGHT'),
+    styleText(['bold', 'green'], 'SPEC IS TIGHT, SHIP IT RIGHT'),
   ];
 
   return styleText('green', buildCard(lines));

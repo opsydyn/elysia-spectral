@@ -9,6 +9,7 @@ import {
 } from '../../src/core/runtime';
 import { OpenApiLintThresholdError } from '../../src/core/thresholds';
 import { PublicSpecProviderError } from '../../src/providers/public-spec-provider';
+import type { LintRunResult } from '../../src/types';
 
 describe('createOpenApiLintRuntime', () => {
   it('lints a generated public OpenAPI document through app.handle', async () => {
@@ -175,7 +176,7 @@ describe('createOpenApiLintRuntime', () => {
   it('can derive the snapshot filename from the consuming app package name', async () => {
     const snapshotPath = path.resolve(
       process.cwd(),
-      'elysia-spectral.open-api.json',
+      'opsydyn-elysia-spectral.open-api.json',
     );
 
     await rm(snapshotPath, { force: true });
@@ -227,6 +228,207 @@ describe('createOpenApiLintRuntime', () => {
     } finally {
       await rm(snapshotPath, { force: true });
     }
+  });
+
+  it('writes a SARIF report as a built-in output sink', async () => {
+    const sarifPath = './artifacts/test/openapi-lint.sarif';
+    const resolvedSarifPath = path.resolve(process.cwd(), sarifPath);
+
+    await rm(resolvedSarifPath, { force: true });
+
+    const app = new Elysia()
+      .use(
+        openapi({
+          documentation: {
+            info: {
+              title: 'Runtime SARIF API',
+              version: '1.0.0',
+            },
+          },
+        }),
+      )
+      .get('/users', () => [{ id: '1' }], {
+        response: {
+          200: t.Array(
+            t.Object({
+              id: t.String(),
+            }),
+          ),
+        },
+      });
+
+    const runtime = createOpenApiLintRuntime({
+      output: {
+        console: false,
+        sarifReportPath: sarifPath,
+      },
+      failOn: 'never',
+    });
+
+    try {
+      const result = await runtime.run(app);
+      const sarif = JSON.parse(await readFile(resolvedSarifPath, 'utf8')) as {
+        version: string;
+        runs: Array<{
+          automationDetails?: {
+            id: string;
+          };
+          originalUriBaseIds?: {
+            '%SRCROOT%': {
+              uri: string;
+            };
+          };
+          tool: {
+            driver: {
+              name: string;
+              rules?: Array<{
+                helpUri?: string;
+              }>;
+            };
+          };
+          results: Array<{
+            ruleId: string;
+            level: string;
+            ruleIndex?: number;
+          }>;
+        }>;
+      };
+
+      expect(result.artifacts?.sarifReportPath).toBe(resolvedSarifPath);
+      expect(sarif.version).toBe('2.1.0');
+      expect(sarif.runs[0]?.automationDetails?.id).toBe(
+        '@opsydyn/elysia-spectral/openapi-lint',
+      );
+      expect(sarif.runs[0]?.originalUriBaseIds?.['%SRCROOT%']?.uri).toContain(
+        'file://',
+      );
+      expect(sarif.runs[0]?.tool.driver.name).toBe('@opsydyn/elysia-spectral');
+      expect(sarif.runs[0]?.tool.driver.rules?.[0]?.helpUri).toBe(
+        'https://github.com/stoplightio/spectral',
+      );
+      expect(sarif.runs[0]?.results.length).toBeGreaterThan(0);
+      expect(typeof sarif.runs[0]?.results[0]?.ruleId).toBe('string');
+      expect(sarif.runs[0]?.results[0]?.level).toMatch(
+        /error|warning|note/,
+      );
+      expect(typeof sarif.runs[0]?.results[0]?.ruleIndex).toBe('number');
+    } finally {
+      await rm(resolvedSarifPath, { force: true });
+    }
+  });
+
+  it('writes a JUnit report as a built-in output sink', async () => {
+    const junitPath = './artifacts/test/openapi-lint.junit.xml';
+    const resolvedJunitPath = path.resolve(process.cwd(), junitPath);
+
+    await rm(resolvedJunitPath, { force: true });
+
+    const app = new Elysia()
+      .use(
+        openapi({
+          documentation: {
+            info: {
+              title: 'Runtime JUnit API',
+              version: '1.0.0',
+            },
+          },
+        }),
+      )
+      .get('/users', () => [{ id: '1' }], {
+        response: {
+          200: t.Array(
+            t.Object({
+              id: t.String(),
+            }),
+          ),
+        },
+      });
+
+    const runtime = createOpenApiLintRuntime({
+      output: {
+        console: false,
+        junitReportPath: junitPath,
+      },
+      failOn: 'never',
+    });
+
+    try {
+      const result = await runtime.run(app);
+      const junit = await readFile(resolvedJunitPath, 'utf8');
+
+      expect(result.artifacts?.junitReportPath).toBe(resolvedJunitPath);
+      expect(junit).toContain('<testsuite name="OpenAPI lint"');
+      expect(junit).toContain('<failure type="warn"');
+      expect(junit).toContain('Issue:');
+    } finally {
+      await rm(resolvedJunitPath, { force: true });
+    }
+  });
+
+  it('supports custom output sinks', async () => {
+    let capturedSpec: Record<string, unknown> | null = null;
+    let capturedResult: LintRunResult | null = null;
+
+    const app = new Elysia()
+      .use(
+        openapi({
+          documentation: {
+            info: {
+              title: 'Runtime Custom Sink API',
+              version: '1.0.0',
+            },
+            tags: [{ name: 'Users', description: 'User operations' }],
+          },
+        }),
+      )
+      .get('/users', () => [{ id: '1' }], {
+        response: {
+          200: t.Array(
+            t.Object({
+              id: t.String(),
+            }),
+          ),
+        },
+        detail: {
+          summary: 'List users',
+          description: 'Returns users for custom sink testing.',
+          operationId: 'listUsersCustomSink',
+          tags: ['Users'],
+        },
+      });
+
+    const runtime = createOpenApiLintRuntime({
+      output: {
+        console: false,
+        sinks: [
+          {
+            name: 'capture',
+            write(result, context) {
+              capturedResult = result;
+              capturedSpec = context.spec;
+
+              return {
+                sarifReportPath: 'memory://capture.sarif',
+              };
+            },
+          },
+        ],
+      },
+      failOn: 'error',
+    });
+
+    const result = await runtime.run(app);
+
+    if (!capturedSpec || !capturedResult) {
+      throw new Error('Expected custom sink to capture both spec and result.');
+    }
+
+    const resolvedSpec = capturedSpec as Record<string, unknown>;
+    const resolvedResult = capturedResult as LintRunResult;
+
+    expect(resolvedResult).toBe(result);
+    expect(typeof resolvedSpec.openapi).toBe('string');
+    expect(result.artifacts?.sarifReportPath).toBe('memory://capture.sarif');
   });
 
   it('warns and continues when artifact writes fail in warn mode', async () => {

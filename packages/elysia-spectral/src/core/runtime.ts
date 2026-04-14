@@ -1,13 +1,10 @@
 import type { AnyElysia } from 'elysia';
-import { reportToConsole, resolveReporter } from '../output/console-reporter';
-import {
-  resolveDefaultSpecSnapshotPath,
-  writeJsonReport,
-  writeSpecSnapshot,
-} from '../output/json-reporter';
+import { resolveReporter } from '../output/console-reporter';
+import { createOutputSinks } from '../output/sinks';
 import { PublicSpecProvider } from '../providers/public-spec-provider';
 import type {
   LintRunResult,
+  OpenApiLintArtifacts,
   OpenApiLintRuntime,
   OpenApiLintRuntimeFailure,
   SpectralPluginOptions,
@@ -51,32 +48,6 @@ export const createOpenApiLintRuntime = (
         try {
           const provider = new PublicSpecProvider(app, options.source);
           const spec = (await provider.getSpec()) as Record<string, unknown>;
-          let snapshotPath: string | undefined;
-          let reportPath: string | undefined;
-
-          if (options.output?.specSnapshotPath) {
-            try {
-              const snapshotTarget =
-                options.output.specSnapshotPath === true
-                  ? await resolveDefaultSpecSnapshotPath()
-                  : options.output.specSnapshotPath;
-              snapshotPath = await writeSpecSnapshot(
-                snapshotTarget,
-                spec,
-                options.output.pretty !== false,
-              );
-              reporter.artifact(
-                `OpenAPI lint wrote spec snapshot to ${snapshotPath}.`,
-              );
-            } catch (error) {
-              handleArtifactWriteFailure(
-                'spec snapshot',
-                error,
-                artifactWriteFailureMode,
-                reporter,
-              );
-            }
-          }
 
           const loadedRuleset = await loadResolvedRuleset(options.ruleset);
           if (loadedRuleset.source?.autodiscovered) {
@@ -88,44 +59,9 @@ export const createOpenApiLintRuntime = (
           }
 
           const result = await lintOpenApi(spec, loadedRuleset.ruleset);
-          if (snapshotPath) {
-            result.artifacts = {
-              specSnapshotPath: snapshotPath,
-            };
-          }
+          await writeOutputSinks(result, spec, options, artifactWriteFailureMode);
 
           runtime.latest = result;
-
-          if (options.output?.jsonReportPath) {
-            try {
-              reportPath = await writeJsonReport(
-                options.output.jsonReportPath,
-                result,
-                options.output.pretty !== false,
-              );
-              reporter.artifact(
-                `OpenAPI lint wrote JSON report to ${reportPath}.`,
-              );
-            } catch (error) {
-              handleArtifactWriteFailure(
-                'JSON report',
-                error,
-                artifactWriteFailureMode,
-                reporter,
-              );
-            }
-          }
-
-          if (reportPath) {
-            result.artifacts = {
-              ...result.artifacts,
-              jsonReportPath: reportPath,
-            };
-          }
-
-          if (options.output?.console !== false) {
-            reportToConsole(result, reporter);
-          }
 
           reporter.complete('OpenAPI lint completed.');
           enforceThreshold(result, options.failOn ?? 'error');
@@ -171,7 +107,7 @@ const toRuntimeFailure = (error: unknown): OpenApiLintRuntimeFailure => ({
 
 export class OpenApiLintArtifactWriteError extends Error {
   constructor(
-    readonly artifact: 'spec snapshot' | 'JSON report',
+    readonly artifact: string,
     readonly cause: unknown,
   ) {
     super(
@@ -182,7 +118,7 @@ export class OpenApiLintArtifactWriteError extends Error {
 }
 
 const handleArtifactWriteFailure = (
-  artifact: 'spec snapshot' | 'JSON report',
+  artifact: string,
   error: unknown,
   mode: 'warn' | 'error',
   reporter: ReturnType<typeof resolveReporter>,
@@ -195,6 +131,49 @@ const handleArtifactWriteFailure = (
 
   reporter.warn(wrappedError.message);
 };
+
+const writeOutputSinks = async (
+  result: LintRunResult,
+  spec: Record<string, unknown>,
+  options: SpectralPluginOptions,
+  artifactWriteFailureMode: 'warn' | 'error',
+): Promise<void> => {
+  const reporter = resolveReporter(options.logger);
+  const sinks = createOutputSinks(options);
+
+  for (const sink of sinks) {
+    try {
+      const artifacts = await sink.write(result, {
+        spec,
+        logger: reporter,
+      });
+
+      if (artifacts) {
+        result.artifacts = mergeArtifacts(result.artifacts, artifacts);
+      }
+    } catch (error) {
+      if (sink.kind === 'artifact') {
+        handleArtifactWriteFailure(
+          sink.name,
+          error,
+          artifactWriteFailureMode,
+          reporter,
+        );
+        continue;
+      }
+
+      throw error;
+    }
+  }
+};
+
+const mergeArtifacts = (
+  current: OpenApiLintArtifacts | undefined,
+  next: Partial<OpenApiLintArtifacts>,
+): OpenApiLintArtifacts => ({
+  ...current,
+  ...next,
+});
 
 export const isEnabled = (options: SpectralPluginOptions = {}): boolean => {
   return resolveStartupMode(options) !== 'off';

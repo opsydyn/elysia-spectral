@@ -148,4 +148,66 @@ describe('loadRuleset', () => {
       mergedWithDefault: true,
     });
   });
+
+  it('supports a custom resolver pipeline', async () => {
+    const customRuleset = {
+      extends: ['spectral:oas'],
+      rules: {
+        'custom-resolver-summary': {
+          description: 'Require operation summaries through a custom resolver.',
+          message: 'Operation summary is required by the custom resolver.',
+          severity: 'warn',
+          given: '$.paths[*][get,put,post,delete,options,head,patch,trace]',
+          then: {
+            field: 'summary',
+            function: 'truthy',
+          },
+        },
+      },
+    };
+
+    const ruleset = await loadRuleset('virtual://ruleset', {
+      resolvers: [
+        async (input) =>
+          input === 'virtual://ruleset' ? { ruleset: customRuleset } : undefined,
+      ],
+    });
+
+    const result = await lintOpenApi(
+      fixtureSpec as Record<string, unknown>,
+      ruleset,
+    );
+
+    expect(result.findings.some((finding) => finding.code === 'custom-resolver-summary')).toBe(
+      true,
+    );
+  });
+
+  it('can skip default-rule merging for autodiscovered rulesets', async () => {
+    const loaded = await loadResolvedRuleset(undefined, {
+      baseDir: './fixtures/rulesets/autodiscover-yaml',
+      mergeAutodiscoveredWithDefault: false,
+    });
+
+    const result = await lintOpenApi(
+      fixtureSpec as Record<string, unknown>,
+      loaded.ruleset,
+    );
+
+    expect(
+      result.findings.some(
+        (finding) => finding.code === 'sample-autodiscover-yaml-summary',
+      ),
+    ).toBe(true);
+    expect(
+      result.findings.some(
+        (finding) => finding.code === 'elysia-operation-tags',
+      ),
+    ).toBe(false);
+    expect(loaded.source).toEqual({
+      path: './spectral.yaml',
+      autodiscovered: true,
+      mergedWithDefault: false,
+    });
+  });
 });

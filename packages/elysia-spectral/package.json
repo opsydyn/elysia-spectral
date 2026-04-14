@@ -1,5 +1,5 @@
 {
-  "name": "elysia-spectral",
+  "name": "@opsydyn/elysia-spectral",
   "version": "0.1.0",
   "description": "Thin Elysia plugin that lints generated OpenAPI documents with Spectral.",
   "packageManager": "bun@1.2.9",
@@ -21,6 +21,11 @@
       "import": "./dist/core/index.mjs"
     }
   },
+  "typesVersions": {
+    "*": {
+      "core": ["./dist/core/index.d.mts"]
+    }
+  },
   "files": [
     "CHANGELOG.md",
     "dist",
@@ -40,27 +45,40 @@
     "lint",
     "bun"
   ],
-  "author": "",
+  "author": "Alan P Currie",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/opsydyn/elysia-spectral.git",
+    "directory": "packages/elysia-spectral"
+  },
+  "homepage": "https://github.com/opsydyn/elysia-spectral#readme",
+  "bugs": {
+    "url": "https://github.com/opsydyn/elysia-spectral/issues"
+  },
+  "engines": {
+    "node": ">=22.0.0",
+    "bun": ">=1.3.0"
+  },
   "peerDependencies": {
     "elysia": "^1.4.0"
   },
   "dependencies": {
-    "@stoplight/spectral-core": "^1.20.0",
+    "@stoplight/spectral-core": "^1.22.0",
     "@stoplight/spectral-formats": "^1.8.0",
-    "@stoplight/spectral-functions": "^1.10.1",
+    "@stoplight/spectral-functions": "^1.10.2",
     "@stoplight/spectral-parsers": "^1.0.4",
-    "@stoplight/spectral-rulesets": "^1.22.0",
+    "@stoplight/spectral-rulesets": "^1.22.1",
     "signale": "^1.4.0",
     "yaml": "^2.8.1"
   },
   "devDependencies": {
     "@elysiajs/openapi": "^1.4.0",
-    "@types/bun": "^1.2.9",
-    "@types/node": "^22.15.31",
+    "@types/bun": "^1.3.12",
+    "@types/node": "^25.6.0",
     "@types/signale": "^1.4.7",
     "elysia": "^1.4.0",
-    "tsdown": "^0.21.7",
+    "tsdown": "^0.21.8",
     "typescript": "^5.8.3"
   }
 }

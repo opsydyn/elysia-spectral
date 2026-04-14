@@ -1,0 +1,107 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "elysia-spectral unhappy dev app",
+    "description": "Development documentation",
+    "version": "0.1.0"
+  },
+  "tags": [
+    {
+      "name": "Dev",
+      "description": "Development fixture operations"
+    }
+  ],
+  "paths": {
+    "/": {
+      "get": {
+        "summary": "Show unhappy dev endpoints",
+        "description": "Return the local endpoints exposed by the intentionally failing dev fixture app.",
+        "operationId": "getUnhappyDevEndpoints",
+        "tags": [
+          "Dev"
+        ],
+        "responses": {
+          "200": {
+            "description": "Response for status 200",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "service",
+                    "openapi",
+                    "spec",
+                    "healthcheck",
+                    "intentionallyBrokenRoute"
+                  ],
+                  "properties": {
+                    "service": {
+                      "type": "string"
+                    },
+                    "openapi": {
+                      "type": "string"
+                    },
+                    "spec": {
+                      "type": "string"
+                    },
+                    "healthcheck": {
+                      "type": "string"
+                    },
+                    "intentionallyBrokenRoute": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/users": {
+      "get": {
+        "summary": "List users",
+        "description": "Return all users from the unhappy dev fixture endpoint.",
+        "operationId": "listUsersUnhappyFixture",
+        "tags": [
+          "Dev"
+        ],
+        "responses": {
+          "200": {
+            "description": "Response for status 200",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "id",
+                      "name"
+                    ],
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "name": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/broken-users": {
+      "get": {
+        "operationId": "getBroken-users"
+      }
+    }
+  },
+  "components": {
+    "schemas": {}
+  }
+}
