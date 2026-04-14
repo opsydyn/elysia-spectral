@@ -4,8 +4,8 @@ import path from 'node:path';
 import { openapi } from '@elysiajs/openapi';
 import { Elysia, t } from 'elysia';
 import {
-  OpenApiLintArtifactWriteError,
   createOpenApiLintRuntime,
+  OpenApiLintArtifactWriteError,
 } from '../../src/core/runtime';
 import { OpenApiLintThresholdError } from '../../src/core/thresholds';
 import { PublicSpecProviderError } from '../../src/providers/public-spec-provider';
