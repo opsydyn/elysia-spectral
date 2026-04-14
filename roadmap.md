@@ -1,4 +1,4 @@
-# elysia-spectral roadmap
+# @opsydyn/elysia-spectral roadmap
 
 ## purpose
 
