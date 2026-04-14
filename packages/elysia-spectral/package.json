@@ -1,6 +1,6 @@
 {
   "name": "@opsydyn/elysia-spectral",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Thin Elysia plugin that lints generated OpenAPI documents with Spectral.",
   "packageManager": "bun@1.2.9",
   "publishConfig": {
@@ -28,14 +28,25 @@
       ]
     }
   },
-  "files": ["CHANGELOG.md", "dist", "README.md", "spectral.yaml"],
+  "files": [
+    "CHANGELOG.md",
+    "dist",
+    "README.md",
+    "spectral.yaml"
+  ],
   "scripts": {
     "build": "tsdown",
     "typecheck": "tsc --noEmit",
     "test": "bun test",
     "test:watch": "bun test --watch"
   },
-  "keywords": ["elysia", "openapi", "spectral", "lint", "bun"],
+  "keywords": [
+    "elysia",
+    "openapi",
+    "spectral",
+    "lint",
+    "bun"
+  ],
   "author": "Alan P Currie",
   "license": "MIT",
   "repository": {
