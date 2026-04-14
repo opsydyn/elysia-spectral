@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.2](https://github.com/opsydyn/elysia-spectral/compare/v0.2.1...v0.2.2) (2026-04-14)
+
+
+### Bug Fixes
+
+* :wrench: migrate biome config to 2.4.11 and pin version ([327d089](https://github.com/opsydyn/elysia-spectral/commit/327d08969af3e394ef6ea992cdba9e5189129f39))
+
 ## [0.2.1](https://github.com/opsydyn/elysia-spectral/compare/v0.2.0...v0.2.1) (2026-04-14)
 
 
