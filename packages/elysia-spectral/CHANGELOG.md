@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.1](https://github.com/opsydyn/elysia-spectral/compare/v0.2.0...v0.2.1) (2026-04-14)
+
+
+### Bug Fixes
+
+* :wrench: resolve all biome lint and format errors ([cb3ff8d](https://github.com/opsydyn/elysia-spectral/commit/cb3ff8dd5464b5a7036861c5550390dbf79f2dd5))
+
 ## [0.2.0](https://github.com/opsydyn/elysia-spectral/compare/v0.1.0...v0.2.0) (2026-04-14)
 
 
