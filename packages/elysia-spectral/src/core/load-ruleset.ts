@@ -437,9 +437,7 @@ const mergeRulesets = (
     ...mergedOverride,
   };
 
-  // biome-ignore lint/performance/noDelete: delete removes the key entirely; = undefined would leave a key with undefined value, changing spread semantics
   delete merged.extends;
-  // biome-ignore lint/performance/noDelete: same as above
   delete merged.rules;
 
   if (mergedExtends.length > 0) {

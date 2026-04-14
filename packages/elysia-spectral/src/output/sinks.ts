@@ -1,7 +1,6 @@
 import type {
   LintRunResult,
   OpenApiLintArtifacts,
-  OpenApiLintSink,
   OpenApiLintSinkContext,
   SpectralPluginOptions,
 } from '../types';
