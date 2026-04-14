@@ -1,6 +1,6 @@
+import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { writeFile, mkdir } from 'node:fs/promises';
 import type { LintFinding, LintRunResult } from '../types';
 
 const SARIF_SCHEMA_URI =
@@ -22,7 +22,9 @@ export const writeSarifReport = async (
   return resolvedPath;
 };
 
-export const buildSarifReport = (result: LintRunResult): Record<string, unknown> => {
+export const buildSarifReport = (
+  result: LintRunResult,
+): Record<string, unknown> => {
   const defaultArtifactPath =
     result.artifacts?.specSnapshotPath &&
     result.artifacts.specSnapshotPath.length > 0
@@ -51,11 +53,7 @@ export const buildSarifReport = (result: LintRunResult): Record<string, unknown>
           },
         },
         results: result.findings.map((finding) =>
-          buildSarifResult(
-            finding,
-            defaultArtifactPath,
-            rulesById,
-          ),
+          buildSarifResult(finding, defaultArtifactPath, rulesById),
         ),
       },
     ],
@@ -171,7 +169,9 @@ const buildSarifLocation = (
   };
 };
 
-const toSarifLevel = (severity: LintFinding['severity']): 'error' | 'warning' | 'note' => {
+const toSarifLevel = (
+  severity: LintFinding['severity'],
+): 'error' | 'warning' | 'note' => {
   switch (severity) {
     case 'error':
       return 'error';

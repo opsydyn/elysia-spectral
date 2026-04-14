@@ -55,11 +55,18 @@ export const createOpenApiLintRuntime = (
               `OpenAPI lint autodiscovered ruleset ${loadedRuleset.source.path} and merged it with the package default ruleset.`,
             );
           } else if (loadedRuleset.source?.path) {
-            reporter.ruleset(`OpenAPI lint loaded ruleset ${loadedRuleset.source.path}.`);
+            reporter.ruleset(
+              `OpenAPI lint loaded ruleset ${loadedRuleset.source.path}.`,
+            );
           }
 
           const result = await lintOpenApi(spec, loadedRuleset.ruleset);
-          await writeOutputSinks(result, spec, options, artifactWriteFailureMode);
+          await writeOutputSinks(
+            result,
+            spec,
+            options,
+            artifactWriteFailureMode,
+          );
 
           runtime.latest = result;
 

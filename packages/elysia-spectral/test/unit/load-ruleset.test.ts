@@ -130,8 +130,7 @@ describe('loadRuleset', () => {
     expect(result.summary.warn).toBeGreaterThan(0);
     expect(
       result.findings.some(
-        (finding) =>
-          finding.code === 'sample-autodiscover-config-description',
+        (finding) => finding.code === 'sample-autodiscover-config-description',
       ),
     ).toBe(true);
   });
@@ -169,7 +168,9 @@ describe('loadRuleset', () => {
     const ruleset = await loadRuleset('virtual://ruleset', {
       resolvers: [
         async (input) =>
-          input === 'virtual://ruleset' ? { ruleset: customRuleset } : undefined,
+          input === 'virtual://ruleset'
+            ? { ruleset: customRuleset }
+            : undefined,
       ],
     });
 
@@ -178,9 +179,11 @@ describe('loadRuleset', () => {
       ruleset,
     );
 
-    expect(result.findings.some((finding) => finding.code === 'custom-resolver-summary')).toBe(
-      true,
-    );
+    expect(
+      result.findings.some(
+        (finding) => finding.code === 'custom-resolver-summary',
+      ),
+    ).toBe(true);
   });
 
   it('can skip default-rule merging for autodiscovered rulesets', async () => {

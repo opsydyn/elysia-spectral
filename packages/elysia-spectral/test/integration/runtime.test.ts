@@ -4,8 +4,8 @@ import path from 'node:path';
 import { openapi } from '@elysiajs/openapi';
 import { Elysia, t } from 'elysia';
 import {
-  createOpenApiLintRuntime,
   OpenApiLintArtifactWriteError,
+  createOpenApiLintRuntime,
 } from '../../src/core/runtime';
 import { OpenApiLintThresholdError } from '../../src/core/thresholds';
 import { PublicSpecProviderError } from '../../src/providers/public-spec-provider';
@@ -308,9 +308,7 @@ describe('createOpenApiLintRuntime', () => {
       );
       expect(sarif.runs[0]?.results.length).toBeGreaterThan(0);
       expect(typeof sarif.runs[0]?.results[0]?.ruleId).toBe('string');
-      expect(sarif.runs[0]?.results[0]?.level).toMatch(
-        /error|warning|note/,
-      );
+      expect(sarif.runs[0]?.results[0]?.level).toMatch(/error|warning|note/);
       expect(typeof sarif.runs[0]?.results[0]?.ruleIndex).toBe('number');
     } finally {
       await rm(resolvedSarifPath, { force: true });
@@ -581,7 +579,9 @@ describe('createOpenApiLintRuntime', () => {
 
     try {
       await runtime.run(app);
-      throw new Error('Expected runtime.run to fail for a bad source.specPath.');
+      throw new Error(
+        'Expected runtime.run to fail for a bad source.specPath.',
+      );
     } catch (error) {
       expect(error).toBeInstanceOf(PublicSpecProviderError);
       expect(runtime.status).toBe('failed');
@@ -593,8 +593,7 @@ describe('createOpenApiLintRuntime', () => {
       expect(runtime.lastSuccess).toBeNull();
       expect(runtime.lastFailure?.name).toBe('PublicSpecProviderError');
 
-      const message =
-        error instanceof Error ? error.message : String(error);
+      const message = error instanceof Error ? error.message : String(error);
 
       expect(message).toContain(
         'Unable to load OpenAPI JSON from /missing-openapi-json',
@@ -631,8 +630,7 @@ describe('createOpenApiLintRuntime', () => {
       expect(runtime.lastSuccess).toBeNull();
       expect(runtime.lastFailure?.name).toBe('PublicSpecProviderError');
 
-      const message =
-        error instanceof Error ? error.message : String(error);
+      const message = error instanceof Error ? error.message : String(error);
 
       expect(message).toContain(
         'Unable to parse OpenAPI JSON from app.handle(Request) at /broken-openapi-json',

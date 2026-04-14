@@ -1,6 +1,6 @@
 import { openapi } from '@elysiajs/openapi';
-import { Elysia, t } from 'elysia';
 import { spectralPlugin } from '@opsydyn/elysia-spectral';
+import { Elysia, t } from 'elysia';
 
 type ExampleMode = 'happy' | 'unhappy';
 

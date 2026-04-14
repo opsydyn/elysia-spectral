@@ -2,10 +2,7 @@
   "name": "@opsydyn/elysia-spectral-workspace",
   "private": true,
   "packageManager": "bun@1.2.9",
-  "workspaces": [
-    "packages/*",
-    "apps/*"
-  ],
+  "workspaces": ["packages/*", "apps/*"],
   "scripts": {
     "lint": "bunx --bun @biomejs/biome check .",
     "lint:fix": "bunx --bun @biomejs/biome check --write .",

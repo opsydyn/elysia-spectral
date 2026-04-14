@@ -17,9 +17,7 @@
         "summary": "List users",
         "description": "Returns users for derived snapshot testing.",
         "operationId": "listUsersDerivedSnapshot",
-        "tags": [
-          "Users"
-        ],
+        "tags": ["Users"],
         "responses": {
           "200": {
             "description": "Response for status 200",
@@ -29,9 +27,7 @@
                   "type": "array",
                   "items": {
                     "type": "object",
-                    "required": [
-                      "id"
-                    ],
+                    "required": ["id"],
                     "properties": {
                       "id": {
                         "type": "string"

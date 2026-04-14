@@ -47,6 +47,7 @@ const functionMap = {
 
 type AvailableFunctionMap = Record<
   string,
+  // biome-ignore lint/suspicious/noExplicitAny: Spectral's generic function types use any
   RulesetFunction<any, any> | RulesetFunctionWithValidator<any, any>
 >;
 
@@ -188,7 +189,9 @@ const resolveAutodiscoveredRuleset: RulesetResolver = async (
     return undefined;
   }
 
-  const autodiscoveredPath = await findAutodiscoveredRulesetPath(context.baseDir);
+  const autodiscoveredPath = await findAutodiscoveredRulesetPath(
+    context.baseDir,
+  );
   if (!autodiscoveredPath) {
     return undefined;
   }
@@ -370,8 +373,8 @@ const resolveModuleFunctions = (imported: unknown): AvailableFunctionMap => {
     );
   }
 
-  const entries = Object.entries(functions).filter(([, value]) =>
-    typeof value === 'function',
+  const entries = Object.entries(functions).filter(
+    ([, value]) => typeof value === 'function',
   );
 
   return Object.fromEntries(entries) as AvailableFunctionMap;
@@ -417,7 +420,9 @@ const mergeRulesets = (
   const mergedOverride = overrideRuleset as Record<string, unknown>;
 
   const baseRules = isRecord(mergedBase.rules) ? mergedBase.rules : {};
-  const overrideRules = isRecord(mergedOverride.rules) ? mergedOverride.rules : {};
+  const overrideRules = isRecord(mergedOverride.rules)
+    ? mergedOverride.rules
+    : {};
   const mergedRules = {
     ...baseRules,
     ...overrideRules,
@@ -432,7 +437,9 @@ const mergeRulesets = (
     ...mergedOverride,
   };
 
+  // biome-ignore lint/performance/noDelete: delete removes the key entirely; = undefined would leave a key with undefined value, changing spread semantics
   delete merged.extends;
+  // biome-ignore lint/performance/noDelete: same as above
   delete merged.rules;
 
   if (mergedExtends.length > 0) {

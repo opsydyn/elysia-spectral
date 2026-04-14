@@ -77,7 +77,7 @@ export class PublicSpecProvider extends BaseSpecProvider {
       throw new PublicSpecProviderError(
         [
           `Unable to load OpenAPI JSON from ${url}: received ${describeResponse(response)}${body ? ` with body ${body}.` : '.'}`,
-          `Fix: ensure the HTTP endpoint is reachable and returns the generated OpenAPI JSON, or update source.baseUrl/source.specPath.`,
+          'Fix: ensure the HTTP endpoint is reachable and returns the generated OpenAPI JSON, or update source.baseUrl/source.specPath.',
         ].join(' '),
         { cause },
       );

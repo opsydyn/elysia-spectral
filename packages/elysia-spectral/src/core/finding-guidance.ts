@@ -2,7 +2,7 @@ const guidanceByCode: Record<string, string> = {
   'elysia-operation-summary':
     'Add detail.summary to the Elysia route options so generated docs and clients have a short operation label.',
   'elysia-operation-tags':
-    'Add detail.tags with at least one stable tag, for example [\'Users\'] or [\'Dev\'].',
+    "Add detail.tags with at least one stable tag, for example ['Users'] or ['Dev'].",
   'operation-description':
     'Add detail.description with a short user-facing explanation of what the route does.',
   'operation-tags':

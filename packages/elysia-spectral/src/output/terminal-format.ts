@@ -12,8 +12,7 @@ const severityStyles: Record<LintSeverity, Parameters<typeof styleText>[0]> = {
 export const formatSeverityLabel = (severity: LintSeverity): string =>
   ` ${styleText(severityStyles[severity], severity.toUpperCase())} `;
 
-export const formatMuted = (value: string): string =>
-  styleText('gray', value);
+export const formatMuted = (value: string): string => styleText('gray', value);
 
 export const formatHeading = (value: string): string =>
   styleText(['bold', 'white', 'bgCyan'], ` ${value} `);
@@ -23,9 +22,7 @@ export const formatStatusBadge = (status: 'pass' | 'fail'): string =>
     ? styleText(['bold', 'white', 'bgGreen'], ' PASS ')
     : styleText(['bold', 'white', 'bgRed'], ' FAIL ');
 
-export const formatPassCard = (
-  summary: LintRunResult['summary'],
-): string => {
+export const formatPassCard = (summary: LintRunResult['summary']): string => {
   const lines = [
     `${styleText(['bold', 'white'], 'OPENAPI LINT')}  ${styleText(['bold', 'white', 'bgGreen'], 'PASS')}`,
     `${styleText(['bold', 'green'], String(summary.error))} errors  ${styleText(['bold', 'green'], String(summary.warn))} warns  ${styleText(['bold', 'green'], String(summary.info))} info`,
@@ -71,7 +68,10 @@ export const formatKey = (
 };
 
 export const formatDivider = (): string =>
-  styleText('gray', '------------------------------------------------------------');
+  styleText(
+    'gray',
+    '------------------------------------------------------------',
+  );
 
 export const formatCount = (
   value: number,
@@ -123,7 +123,10 @@ export const formatSpecReference = (value: string): string => {
 };
 
 export const formatFindingTitle = (
-  finding: Pick<LintFinding, 'code' | 'severity' | 'operation' | 'documentPointer'>,
+  finding: Pick<
+    LintFinding,
+    'code' | 'severity' | 'operation' | 'documentPointer'
+  >,
 ): string => {
   const location =
     finding.operation?.method && finding.operation?.path
@@ -134,7 +137,8 @@ export const formatFindingTitle = (
 };
 
 const buildCard = (lines: string[]): string => {
-  const innerWidth = Math.max(...lines.map((line) => stripAnsi(line).length)) + 2;
+  const innerWidth =
+    Math.max(...lines.map((line) => stripAnsi(line).length)) + 2;
   const top = `┌${'─'.repeat(innerWidth)}┐`;
   const bottom = `└${'─'.repeat(innerWidth)}┘`;
   const body = lines.map((line) => padCardLine(line, innerWidth));
@@ -150,4 +154,5 @@ const padCardLine = (content: string, innerWidth: number): string => {
 };
 
 const stripAnsi = (value: string): string =>
-  value.replace(/\x1B\[[0-9;]*m/g, '');
+  // biome-ignore lint/suspicious/noControlCharactersInRegex: ANSI escape sequence requires the ESC control character
+  value.replace(/\u001B\[[0-9;]*m/g, '');

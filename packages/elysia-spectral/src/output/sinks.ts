@@ -6,7 +6,11 @@ import type {
   SpectralPluginOptions,
 } from '../types';
 import { reportToConsole, resolveReporter } from './console-reporter';
-import { resolveDefaultSpecSnapshotPath, writeJsonReport, writeSpecSnapshot } from './json-reporter';
+import {
+  resolveDefaultSpecSnapshotPath,
+  writeJsonReport,
+  writeSpecSnapshot,
+} from './json-reporter';
 import { writeJunitReport } from './junit-reporter';
 import { writeSarifReport } from './sarif-reporter';
 
@@ -16,7 +20,7 @@ type BuiltInSink = {
   write: (
     result: LintRunResult,
     context: OpenApiLintSinkContext,
-  ) => Promise<void | Partial<OpenApiLintArtifacts>>;
+  ) => Promise<undefined | Partial<OpenApiLintArtifacts>>;
 };
 
 export const createOutputSinks = (
@@ -117,7 +121,9 @@ export const createOutputSinks = (
       name: sink.name,
       kind: 'custom',
       write: async (result, context) =>
-        await Promise.resolve(sink.write(result, context)),
+        (await Promise.resolve(sink.write(result, context))) as
+          | Partial<OpenApiLintArtifacts>
+          | undefined,
     });
   }
 
@@ -127,6 +133,7 @@ export const createOutputSinks = (
       kind: 'report',
       async write(result) {
         reportToConsole(result, reporter);
+        return undefined;
       },
     });
   }

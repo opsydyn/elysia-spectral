@@ -1,7 +1,7 @@
 const startsWithPrefix = (
   input: unknown,
   options: { prefix: string },
-): Array<{ message: string }> | void => {
+): Array<{ message: string }> | undefined => {
   if (typeof input !== 'string') {
     return [{ message: 'OperationId must be a string.' }];
   }

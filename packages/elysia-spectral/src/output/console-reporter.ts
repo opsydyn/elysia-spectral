@@ -78,9 +78,7 @@ const defaultReporter: SpectralReporter = {
 export const resolveLogger = (logger?: SpectralLogger): SpectralLogger =>
   resolveReporter(logger);
 
-export const resolveReporter = (
-  logger?: SpectralLogger,
-): SpectralReporter => {
+export const resolveReporter = (logger?: SpectralLogger): SpectralReporter => {
   if (!logger) {
     return defaultReporter;
   }
@@ -126,22 +124,30 @@ export const reportToConsole = (
     {
       severity: 'error' as const,
       title: `ERRORS (${result.summary.error})`,
-      findings: result.findings.filter((finding) => finding.severity === 'error'),
+      findings: result.findings.filter(
+        (finding) => finding.severity === 'error',
+      ),
     },
     {
       severity: 'warn' as const,
       title: `WARNINGS (${result.summary.warn})`,
-      findings: result.findings.filter((finding) => finding.severity === 'warn'),
+      findings: result.findings.filter(
+        (finding) => finding.severity === 'warn',
+      ),
     },
     {
       severity: 'info' as const,
       title: `INFO (${result.summary.info})`,
-      findings: result.findings.filter((finding) => finding.severity === 'info'),
+      findings: result.findings.filter(
+        (finding) => finding.severity === 'info',
+      ),
     },
     {
       severity: 'hint' as const,
       title: `HINTS (${result.summary.hint})`,
-      findings: result.findings.filter((finding) => finding.severity === 'hint'),
+      findings: result.findings.filter(
+        (finding) => finding.severity === 'hint',
+      ),
     },
   ].filter((section) => section.findings.length > 0);
 

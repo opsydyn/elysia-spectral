@@ -17,9 +17,7 @@
         "summary": "Show unhappy dev endpoints",
         "description": "Return the local endpoints exposed by the intentionally failing dev fixture app.",
         "operationId": "getUnhappyDevEndpoints",
-        "tags": [
-          "Dev"
-        ],
+        "tags": ["Dev"],
         "responses": {
           "200": {
             "description": "Response for status 200",
@@ -63,9 +61,7 @@
         "summary": "List users",
         "description": "Return all users from the unhappy dev fixture endpoint.",
         "operationId": "listUsersUnhappyFixture",
-        "tags": [
-          "Dev"
-        ],
+        "tags": ["Dev"],
         "responses": {
           "200": {
             "description": "Response for status 200",
@@ -75,10 +71,7 @@
                   "type": "array",
                   "items": {
                     "type": "object",
-                    "required": [
-                      "id",
-                      "name"
-                    ],
+                    "required": ["id", "name"],
                     "properties": {
                       "id": {
                         "type": "string"

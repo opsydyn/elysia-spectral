@@ -1,5 +1,5 @@
 {
-  "$schema": "https://biomejs.dev/schemas/2.4.10/schema.json",
+  "$schema": "https://biomejs.dev/schemas/1.9.4/schema.json",
   "vcs": {
     "enabled": true,
     "clientKind": "git",
@@ -13,6 +13,9 @@
     "indentStyle": "space",
     "indentWidth": 2
   },
+  "organizeImports": {
+    "enabled": true
+  },
   "linter": {
     "enabled": true,
     "rules": {
@@ -25,19 +28,13 @@
       "semicolons": "always"
     }
   },
-  "assist": {
-    "enabled": true,
-    "actions": {
-      "source": {
-        "organizeImports": "on"
-      }
-    }
-  },
   "overrides": [
     {
-      "includes": [
+      "include": [
         "packages/elysia-spectral/src/core/load-ruleset.ts",
-        "packages/elysia-spectral/src/rulesets/**/*.ts"
+        "packages/elysia-spectral/src/rulesets/**/*.ts",
+        "packages/elysia-spectral/fixtures/**/*.ts",
+        "packages/elysia-spectral/test/**/*.ts"
       ],
       "linter": {
         "rules": {

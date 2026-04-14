@@ -7,11 +7,7 @@ export type LintSeverity = 'error' | 'warn' | 'info' | 'hint';
 
 export type StartupLintMode = 'enforce' | 'report' | 'off';
 
-export type OpenApiLintRuntimeStatus =
-  | 'idle'
-  | 'running'
-  | 'passed'
-  | 'failed';
+export type OpenApiLintRuntimeStatus = 'idle' | 'running' | 'passed' | 'failed';
 
 export type ArtifactWriteFailureMode = 'warn' | 'error';
 
@@ -39,9 +35,9 @@ export type OpenApiLintSink = {
     result: LintRunResult,
     context: OpenApiLintSinkContext,
   ) =>
-    | void
+    | undefined
     | Partial<OpenApiLintArtifacts>
-    | Promise<void | Partial<OpenApiLintArtifacts>>;
+    | Promise<undefined | Partial<OpenApiLintArtifacts>>;
 };
 
 export type SpectralPluginOptions = {
