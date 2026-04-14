@@ -16,6 +16,8 @@ permissions:
 jobs:
   release:
     runs-on: ubuntu-latest
+    env:
+      NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
     steps:
       - name: Run release-please
@@ -27,39 +29,39 @@ jobs:
           manifest-file: .release-please-manifest.json
 
       - name: Check out release commit
-        if: ${{ steps.release.outputs['packages/elysia-spectral--release_created'] == 'true' && secrets.NPM_TOKEN != '' }}
+        if: ${{ steps.release.outputs['packages/elysia-spectral--release_created'] == 'true' && env.NPM_TOKEN != '' }}
         uses: actions/checkout@v4
         with:
           ref: ${{ steps.release.outputs['packages/elysia-spectral--sha'] }}
 
       - name: Set up Bun
-        if: ${{ steps.release.outputs['packages/elysia-spectral--release_created'] == 'true' && secrets.NPM_TOKEN != '' }}
+        if: ${{ steps.release.outputs['packages/elysia-spectral--release_created'] == 'true' && env.NPM_TOKEN != '' }}
         uses: oven-sh/setup-bun@v2
 
       - name: Set up Node.js
-        if: ${{ steps.release.outputs['packages/elysia-spectral--release_created'] == 'true' && secrets.NPM_TOKEN != '' }}
+        if: ${{ steps.release.outputs['packages/elysia-spectral--release_created'] == 'true' && env.NPM_TOKEN != '' }}
         uses: actions/setup-node@v4
         with:
           node-version: 22
           registry-url: https://registry.npmjs.org
 
       - name: Install workspace dependencies
-        if: ${{ steps.release.outputs['packages/elysia-spectral--release_created'] == 'true' && secrets.NPM_TOKEN != '' }}
+        if: ${{ steps.release.outputs['packages/elysia-spectral--release_created'] == 'true' && env.NPM_TOKEN != '' }}
         run: bun install --frozen-lockfile
 
       - name: Validate release commit
-        if: ${{ steps.release.outputs['packages/elysia-spectral--release_created'] == 'true' && secrets.NPM_TOKEN != '' }}
+        if: ${{ steps.release.outputs['packages/elysia-spectral--release_created'] == 'true' && env.NPM_TOKEN != '' }}
         run: bun run check
 
       - name: Publish package to npm
-        if: ${{ steps.release.outputs['packages/elysia-spectral--release_created'] == 'true' && secrets.NPM_TOKEN != '' }}
+        if: ${{ steps.release.outputs['packages/elysia-spectral--release_created'] == 'true' && env.NPM_TOKEN != '' }}
         working-directory: packages/elysia-spectral
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: npm publish --access public --provenance
 
       - name: Note missing NPM token
-        if: ${{ steps.release.outputs['packages/elysia-spectral--release_created'] == 'true' && secrets.NPM_TOKEN == '' }}
+        if: ${{ steps.release.outputs['packages/elysia-spectral--release_created'] == 'true' && env.NPM_TOKEN == '' }}
         run: |
           echo "Release was tagged, but npm publish was skipped because NPM_TOKEN is not configured."
           echo "Add an NPM_TOKEN repository secret to enable automated publication."
