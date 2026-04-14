@@ -17,6 +17,6 @@
     "typecheck": "bun run --filter @opsydyn/elysia-spectral typecheck && bun run --filter @opsydyn/elysia-spectral-dev-app typecheck",
     "dev": "bun run --filter @opsydyn/elysia-spectral build && bun run --filter @opsydyn/elysia-spectral-dev-app dev",
     "dev:unhappy": "bun run --filter @opsydyn/elysia-spectral build && bun run --filter @opsydyn/elysia-spectral-dev-app dev:unhappy",
-    "check": "bun run lint && bun run typecheck && bun run test && bun run build"
+    "check": "bun run lint && bun run build && bun run typecheck && bun run test"
   }
 }
