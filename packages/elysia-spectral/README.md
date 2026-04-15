@@ -49,6 +49,8 @@ Current package scope:
 
 - startup linting
 - threshold-based failure
+- first-party governance presets: `recommended`, `server`, `strict`
+- RFC 9457 Problem Details enforcement (strict preset)
 - repo-level and local rulesets
 - YAML, JS, TS, and in-memory rulesets
 - resolver pipeline for advanced ruleset loading
@@ -57,6 +59,7 @@ Current package scope:
 - JUnit report output
 - SARIF report output
 - OpenAPI snapshot output
+- Bruno collection output (OpenCollection YAML or JSON)
 - reusable runtime for CI and tests
 - opt-in healthcheck endpoint for cached and fresh runs
 
@@ -562,6 +565,41 @@ git commit -m "chore: add openapi snapshot"
 
 If the snapshot has changed, the CI step fails and the diff is visible in the logs. Deliberate API changes are acknowledged by updating the committed snapshot — accidental ones are caught before they ship.
 
+### Generate a typed client with openapi-ts
+
+Use the committed OpenAPI snapshot as input to [`openapi-ts`](https://openapi-ts.dev) to keep a generated TypeScript client in sync with the API surface.
+
+1. Install `openapi-ts`:
+
+```bash
+bun add -d @hey-api/openapi-ts
+```
+
+2. Add a codegen script to `package.json`:
+
+```json
+{
+  "scripts": {
+    "generate:client": "openapi-ts --input ./reports/openapi-snapshot.json --output ./src/generated/client --client @hey-api/client-fetch"
+  }
+}
+```
+
+3. Chain it after the lint step in CI:
+
+```yaml
+- name: Lint OpenAPI spec
+  run: bun scripts/lint-openapi.ts
+
+- name: Generate typed client
+  run: bun run generate:client
+
+- name: Check for client drift
+  run: git diff --exit-code src/generated/client/
+```
+
+The lint gate runs first — if the spec is invalid the codegen step never runs. The drift check ensures the committed client always matches the current spec.
+
 ### Work on this repository locally
 
 From the monorepo root:
@@ -808,4 +846,4 @@ Production-grade linting needs more than a pass/fail boolean. The runtime tracks
 
 ### Project status
 
-This package currently implements the narrowed v0.1 scope from [project.md](../../project.md) and the ongoing hardening work tracked in [roadmap.md](../../roadmap.md).
+The package is actively developed toward a stable `v1`. Milestones 0.2 through 0.6 are complete. Ongoing work is tracked in [roadmap.md](../../roadmap.md).

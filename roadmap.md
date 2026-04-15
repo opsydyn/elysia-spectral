@@ -174,13 +174,14 @@ completed:
 - documented GitHub Actions integration for SARIF code scanning and JUnit test reporters
 - documented OpenAPI snapshot drift detection with `git diff --exit-code`
 
-remaining:
-
-- documented chaining into downstream generation or contract tooling (e.g. `openapi-ts`, Prism mock server)
-
 completed (late additions):
 
 - Bruno collection generation via `output.brunoCollectionPath` using `@usebruno/converters`
+- documented downstream codegen chaining into `openapi-ts` with drift detection
+- API surface audit: removed `normalizeFindings`, `isEnabled`, `exceedsThreshold`, `SpecProvider` from public exports
+- `LintRunResult.ok` now reflects configured `failOn` threshold rather than hardcoded `error === 0`
+
+status: complete
 
 ### milestone 1.0
 
@@ -224,6 +225,6 @@ these should stay out unless the product direction changes:
 
 the next high-leverage implementation tasks are now:
 
-1. document downstream chaining into client generation tooling (milestone 0.6)
-2. stabilize public API surface and package boundaries for `1.0`
-3. audit backwards compatibility and safe production defaults before `1.0`
+1. stabilize public API surface and package boundaries for `1.0`
+2. audit backwards compatibility and safe production defaults before `1.0`
+3. publish migration notes from pre-1.0 configuration to `v1`
