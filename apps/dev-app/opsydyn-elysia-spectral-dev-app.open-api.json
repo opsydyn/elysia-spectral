@@ -1,23 +1,25 @@
 {
   "openapi": "3.0.3",
   "info": {
-    "title": "elysia-spectral unhappy dev app",
+    "title": "elysia-spectral dev app",
     "description": "Development documentation",
     "version": "0.1.0"
   },
   "tags": [
     {
-      "name": "Dev",
-      "description": "Development fixture operations"
+      "name": "Users",
+      "description": "User operations"
     }
   ],
   "paths": {
     "/": {
       "get": {
-        "summary": "Show unhappy dev endpoints",
-        "description": "Return the local endpoints exposed by the intentionally failing dev fixture app.",
-        "operationId": "getUnhappyDevEndpoints",
-        "tags": ["Dev"],
+        "summary": "Show dev endpoints",
+        "description": "Return the local endpoints exposed by the dev fixture app.",
+        "operationId": "getDevEndpoints",
+        "tags": [
+          "Users"
+        ],
         "responses": {
           "200": {
             "description": "Response for status 200",
@@ -29,8 +31,7 @@
                     "service",
                     "openapi",
                     "spec",
-                    "healthcheck",
-                    "intentionallyBrokenRoute"
+                    "healthcheck"
                   ],
                   "properties": {
                     "service": {
@@ -44,9 +45,6 @@
                     },
                     "healthcheck": {
                       "type": "string"
-                    },
-                    "intentionallyBrokenRoute": {
-                      "type": "string"
                     }
                   }
                 }
@@ -59,9 +57,11 @@
     "/users": {
       "get": {
         "summary": "List users",
-        "description": "Return all users from the unhappy dev fixture endpoint.",
-        "operationId": "listUsersUnhappyFixture",
-        "tags": ["Dev"],
+        "description": "Return all users from the dev fixture endpoint.",
+        "operationId": "listUsers",
+        "tags": [
+          "Users"
+        ],
         "responses": {
           "200": {
             "description": "Response for status 200",
@@ -71,7 +71,10 @@
                   "type": "array",
                   "items": {
                     "type": "object",
-                    "required": ["id", "name"],
+                    "required": [
+                      "id",
+                      "name"
+                    ],
                     "properties": {
                       "id": {
                         "type": "string"
@@ -86,11 +89,6 @@
             }
           }
         }
-      }
-    },
-    "/broken-users": {
-      "get": {
-        "operationId": "getBroken-users"
       }
     }
   },

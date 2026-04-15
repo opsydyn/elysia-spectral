@@ -630,13 +630,101 @@ That example uses `startup.mode: 'report'`, so the app still boots while the pac
 ### Package API
 
 ```ts
+// ── Vocabulary types ──────────────────────────────────────────────────────────
+
 type PresetName = 'recommended' | 'server' | 'strict'
-
+type LintSeverity = 'error' | 'warn' | 'info' | 'hint'
 type SeverityThreshold = 'error' | 'warn' | 'info' | 'hint' | 'never'
-
 type StartupLintMode = 'enforce' | 'report' | 'off'
-
+type LintRunSource = 'startup' | 'healthcheck' | 'manual'
 type ArtifactWriteFailureMode = 'warn' | 'error'
+type OpenApiLintRuntimeStatus = 'idle' | 'running' | 'passed' | 'failed'
+
+// ── Plugin options ────────────────────────────────────────────────────────────
+
+type SpectralPluginOptions = {
+  /** First-party governance preset. Sets the base ruleset and autodiscovery merge target. */
+  preset?: PresetName
+  /** Custom ruleset path, object, or inline definition. Merged on top of preset when both are set. */
+  ruleset?: string | RulesetDefinition | Record<string, unknown>
+  /** Severity level at which the lint run is considered failed. Defaults to 'error'. */
+  failOn?: SeverityThreshold
+  healthcheck?: false | { path?: string }
+  output?: {
+    /** Print findings to the console. Default: true. */
+    console?: boolean
+    jsonReportPath?: string
+    junitReportPath?: string
+    sarifReportPath?: string
+    /** true derives the path from the consuming app's package name. */
+    specSnapshotPath?: string | true
+    /** .yml/.yaml → OpenCollection YAML (Bruno v3+), .json → Bruno collection JSON */
+    brunoCollectionPath?: string
+    pretty?: boolean
+    /** Whether artifact write failures throw or warn. Default: 'warn'. */
+    artifactWriteFailures?: ArtifactWriteFailureMode
+    sinks?: OpenApiLintSink[]
+  }
+  source?: {
+    specPath?: string
+    baseUrl?: string
+  }
+  /**
+   * Controls startup lint behaviour.
+   * startup.mode takes precedence over the legacy enabled option.
+   *   'enforce' — lint runs at startup and throws on threshold failure (default)
+   *   'report'  — lint runs at startup, prints findings, but never blocks boot
+   *   'off'     — startup lint is skipped entirely
+   */
+  startup?: {
+    mode?: StartupLintMode
+  }
+  /**
+   * Legacy enable flag. Prefer startup.mode for new code.
+   * false or () => false is equivalent to startup.mode: 'off'.
+   * The function form receives process.env for environment-based toggling.
+   */
+  enabled?: boolean | ((env: Record<string, string | undefined>) => boolean)
+  logger?: SpectralLogger
+}
+
+// ── Result types ──────────────────────────────────────────────────────────────
+
+type LintFinding = {
+  code: string
+  message: string
+  severity: LintSeverity
+  path: Array<string | number>
+  documentPointer?: string
+  recommendation?: string
+  source?: string
+  range?: {
+    start?: { line: number; character: number }
+    end?: { line: number; character: number }
+  }
+  operation?: {
+    method?: string
+    path?: string
+    operationId?: string
+  }
+}
+
+type LintRunResult = {
+  /** True when no findings meet or exceed the configured failOn threshold. */
+  ok: boolean
+  generatedAt: string
+  /** Where the lint run was triggered from. */
+  source: LintRunSource
+  summary: {
+    error: number
+    warn: number
+    info: number
+    hint: number
+    total: number
+  }
+  artifacts?: OpenApiLintArtifacts
+  findings: LintFinding[]
+}
 
 type OpenApiLintArtifacts = {
   jsonReportPath?: string
@@ -646,25 +734,73 @@ type OpenApiLintArtifacts = {
   brunoCollectionPath?: string
 }
 
+type OpenApiLintRuntimeFailure = {
+  name: string
+  message: string
+  generatedAt: string
+}
+
+// ── Runtime ───────────────────────────────────────────────────────────────────
+
+type OpenApiLintRuntime = {
+  status: OpenApiLintRuntimeStatus
+  startedAt: string | null
+  completedAt: string | null
+  durationMs: number | null
+  latest: LintRunResult | null
+  lastSuccess: LintRunResult | null
+  lastFailure: OpenApiLintRuntimeFailure | null
+  running: boolean
+  run: (app: AnyElysia, source?: LintRunSource) => Promise<LintRunResult>
+}
+
+function createOpenApiLintRuntime(options?: SpectralPluginOptions): OpenApiLintRuntime
+
+// ── Extension points (advanced) ───────────────────────────────────────────────
+
+type SpectralLogger = {
+  info: (message: string) => void
+  warn: (message: string) => void
+  error: (message: string) => void
+}
+
+type OpenApiLintSinkContext = {
+  spec: Record<string, unknown>
+  logger: SpectralLogger
+}
+
 type OpenApiLintSink = {
   name: string
   write: (
     result: LintRunResult,
-    context: {
-      spec: Record<string, unknown>
-      logger: SpectralLogger
-    }
+    context: OpenApiLintSinkContext,
   ) => undefined | Partial<OpenApiLintArtifacts> | Promise<undefined | Partial<OpenApiLintArtifacts>>
 }
 
 type RulesetResolver = (
   input: string | RulesetDefinition | Record<string, unknown> | undefined,
-  context: {
-    baseDir: string
-    defaultRuleset: RulesetDefinition
-    mergeAutodiscoveredWithDefault: boolean
+  context: RulesetResolverContext,
+) => Promise<ResolvedRulesetCandidate | undefined>
+
+type RulesetResolverContext = {
+  baseDir: string
+  defaultRuleset: RulesetDefinition
+  mergeAutodiscoveredWithDefault: boolean
+}
+
+type ResolvedRulesetCandidate = {
+  ruleset: unknown
+  source?: LoadedRuleset['source']
+}
+
+type LoadedRuleset = {
+  ruleset: RulesetDefinition
+  source?: {
+    path: string
+    autodiscovered: boolean
+    mergedWithDefault: boolean
   }
-) => Promise<LoadedRuleset | undefined>
+}
 
 type LoadResolvedRulesetOptions = {
   baseDir?: string
@@ -674,39 +810,19 @@ type LoadResolvedRulesetOptions = {
   defaultRuleset?: RulesetDefinition
 }
 
-type SpectralPluginOptions = {
-  /** First-party governance preset. Sets the base ruleset and autodiscovery merge target. */
-  preset?: PresetName
-  /** Custom ruleset path, object, or inline definition. Merged on top of preset when both are set. */
-  ruleset?: string | RulesetDefinition | Record<string, unknown>
-  failOn?: SeverityThreshold
-  healthcheck?: false | { path?: string }
-  output?: {
-    console?: boolean
-    jsonReportPath?: string
-    junitReportPath?: string
-    sarifReportPath?: string
-    specSnapshotPath?: string | true
-    /** .yml/.yaml → OpenCollection YAML (Bruno v3+), .json → Bruno collection JSON */
-    brunoCollectionPath?: string
-    pretty?: boolean
-    artifactWriteFailures?: ArtifactWriteFailureMode
-    sinks?: OpenApiLintSink[]
-  }
-  source?: {
-    specPath?: string
-    baseUrl?: string
-  }
-  enabled?: boolean | ((env: Record<string, string | undefined>) => boolean)
-  startup?: {
-    mode?: StartupLintMode
-  }
-  logger?: {
-    info: (message: string) => void
-    warn: (message: string) => void
-    error: (message: string) => void
-  }
+// ── Error classes ─────────────────────────────────────────────────────────────
+
+class OpenApiLintThresholdError extends Error {
+  readonly threshold: SeverityThreshold
+  readonly result: LintRunResult
 }
+
+class OpenApiLintArtifactWriteError extends Error {
+  readonly artifact: string
+  readonly cause: unknown
+}
+
+class RulesetLoadError extends Error {}
 ```
 
 ### Presets
