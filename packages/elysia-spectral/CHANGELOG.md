@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.1](https://github.com/opsydyn/elysia-spectral/compare/v0.5.0...v0.5.1) (2026-04-15)
+
+
+### Bug Fixes
+
+* tighten public API surface and align LintRunResult.ok with threshold ([8ca3331](https://github.com/opsydyn/elysia-spectral/commit/8ca3331db59e5753d454e759730e3ecd931d2087))
+
 ## [0.5.0](https://github.com/opsydyn/elysia-spectral/compare/v0.4.0...v0.5.0) (2026-04-15)
 
 
