@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.0](https://github.com/opsydyn/elysia-spectral/compare/v0.4.0...v0.5.0) (2026-04-15)
+
+
+### Features
+
+* add Bruno collection output via output.brunoCollectionPath ([45abcd6](https://github.com/opsydyn/elysia-spectral/commit/45abcd6225bd94098d5974a27ef2c7642614c77f))
+
 ## [0.4.0](https://github.com/opsydyn/elysia-spectral/compare/v0.3.0...v0.4.0) (2026-04-15)
 
 
