@@ -153,12 +153,18 @@ bun run src/index.ts
 - `./artifacts/openapi-lint.json` contains the full lint result
 - `./<package-name>.open-api.json` contains the generated OpenAPI snapshot
 
+A passing run:
+
+![OpenAPI lint pass banner](ship-it.png)
+
 If startup fails, the terminal output includes:
 
 - the failing rule code
 - the affected operation
 - a fix hint when one is known
 - a spec reference in `open-api.json#/json/pointer` form
+
+![OpenAPI lint error output](errrors.png)
 
 ### Choose a preset
 
