@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.0.0](https://github.com/opsydyn/elysia-spectral/compare/v0.5.2...v1.0.0) (2026-04-15)
+
+
+### ⚠ BREAKING CHANGES
+
+* result.artifacts paths are now relative (e.g. "./artifacts/openapi-lint.json") rather than absolute. Callers that used the path directly to open the file should resolve it with path.resolve().
+
+### Features
+
+* add durationMs, failOn to LintRunResult; relativise artifact paths ([421a20f](https://github.com/opsydyn/elysia-spectral/commit/421a20f6bf655432bceff8369c63bf4762edbc24))
+
 ## [0.5.2](https://github.com/opsydyn/elysia-spectral/compare/v0.5.1...v0.5.2) (2026-04-15)
 
 
