@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.2](https://github.com/opsydyn/elysia-spectral/compare/v0.5.1...v0.5.2) (2026-04-15)
+
+
+### Bug Fixes
+
+* replace export * with named exports in core/index.ts for stable public API ([d0ef1c9](https://github.com/opsydyn/elysia-spectral/commit/d0ef1c95618ecd5a83e8224f2ba831b226a7ab38))
+
 ## [0.5.1](https://github.com/opsydyn/elysia-spectral/compare/v0.5.0...v0.5.1) (2026-04-15)
 
 
