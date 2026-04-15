@@ -1,3 +1,4 @@
+import path from 'node:path';
 import type { AnyElysia } from 'elysia';
 import { resolveReporter } from '../output/console-reporter';
 import { createOutputSinks } from '../output/sinks';
@@ -74,7 +75,8 @@ export const createOpenApiLintRuntime = (
 
           const result = await lintOpenApi(spec, loadedRuleset.ruleset);
           result.source = source;
-          result.ok = !shouldFail(result, options.failOn ?? 'error');
+          result.failOn = options.failOn ?? 'error';
+          result.ok = !shouldFail(result, result.failOn);
           await writeOutputSinks(
             result,
             spec,
@@ -90,6 +92,7 @@ export const createOpenApiLintRuntime = (
           runtime.status = 'passed';
           runtime.lastSuccess = result;
           finalizeRuntimeRun(runtime, startedAt);
+          result.durationMs = runtime.durationMs;
           return result;
         } catch (error) {
           runtime.status = 'failed';
@@ -188,12 +191,30 @@ const writeOutputSinks = async (
   }
 };
 
+const relativiseArtifacts = (
+  artifacts: Partial<OpenApiLintArtifacts>,
+): Partial<OpenApiLintArtifacts> => {
+  const cwd = process.cwd();
+  const result: Partial<OpenApiLintArtifacts> = {};
+  for (const [key, value] of Object.entries(artifacts)) {
+    if (typeof value === 'string' && path.isAbsolute(value)) {
+      const rel = path.relative(cwd, value);
+      result[key as keyof OpenApiLintArtifacts] = rel.startsWith('.')
+        ? rel
+        : `./${rel}`;
+    } else {
+      result[key as keyof OpenApiLintArtifacts] = value;
+    }
+  }
+  return result;
+};
+
 const mergeArtifacts = (
   current: OpenApiLintArtifacts | undefined,
   next: Partial<OpenApiLintArtifacts>,
 ): OpenApiLintArtifacts => ({
   ...current,
-  ...next,
+  ...relativiseArtifacts(next),
 });
 
 export const resolveStartupMode = (

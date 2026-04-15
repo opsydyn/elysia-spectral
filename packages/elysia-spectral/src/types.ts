@@ -99,6 +99,8 @@ export type LintRunResult = {
   ok: boolean;
   generatedAt: string;
   source: LintRunSource;
+  failOn: SeverityThreshold;
+  durationMs: number | null;
   summary: {
     error: number;
     warn: number;

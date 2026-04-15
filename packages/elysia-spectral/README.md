@@ -63,6 +63,35 @@ Current package scope:
 - reusable runtime for CI and tests
 - opt-in healthcheck endpoint for cached and fresh runs
 
+## Data flow
+
+```mermaid
+flowchart TD
+    A["Elysia routes\n(TypeScript + t.Object schemas)"]
+    B["@elysiajs/openapi\ngenerates OpenAPI spec at runtime"]
+    C["PublicSpecProvider\nfetches /openapi/json"]
+    D["lintOpenApi\nSpectral rules engine"]
+    E["LintRunResult\n{ ok, source, summary, findings }"]
+
+    F["Console output"]
+    G["JSON report\nopenapi-lint.json"]
+    H["OpenAPI snapshot\n*.open-api.json"]
+    I["SARIF\nGitHub code scanning"]
+    J["JUnit\nCI test reporters"]
+    K["Bruno collection\n.yml / .json"]
+
+    A -->|"route schemas are\nthe source of truth"| B
+    B -->|"spec JSON"| C
+    C -->|"spec JSON"| D
+    D -->|"findings + summary"| E
+    E --> F
+    E --> G
+    E --> H
+    E --> I
+    E --> J
+    E --> K
+```
+
 ## Tutorial
 
 ### Add OpenAPI linting to an Elysia app

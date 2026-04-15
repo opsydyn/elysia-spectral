@@ -6,6 +6,8 @@ const createResult = (): LintRunResult => ({
   ok: false,
   generatedAt: new Date().toISOString(),
   source: 'manual',
+  failOn: 'error',
+  durationMs: null,
   summary: {
     error: 0,
     warn: 1,

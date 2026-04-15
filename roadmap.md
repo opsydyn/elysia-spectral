@@ -183,6 +183,40 @@ completed (late additions):
 
 status: complete
 
+### milestone 0.7
+
+goal: make `LintRunResult` self-describing for production teams and CI consumers.
+
+status: planned
+
+background:
+
+the JSON report artifact (`openapi-lint.json`) currently omits information that a team needs to interpret a result without re-running lint or consulting source code. three gaps were identified after testing the artifact in CI:
+
+- `durationMs` is tracked by the runtime but never written to `LintRunResult`
+- artifact paths in `result.artifacts` are absolute local paths, which are meaningless in shared CI artifacts
+- the configured `failOn` threshold is not embedded in the result, so `ok: true` is ambiguous without knowing the policy that produced it
+
+planned scope:
+
+- add `durationMs: number` to `LintRunResult` — stamped from the runtime after each run
+- add `failOn: SeverityThreshold` to `LintRunResult` — stamped alongside `ok` so the policy is always embedded in the artifact
+- relativise all artifact paths in `result.artifacts` to `process.cwd()` — console output keeps absolute paths for display, the serialised artifact gets portable relative paths
+
+implementation:
+
+1. `src/types.ts` — add `durationMs` and `failOn` to `LintRunResult`
+2. `src/core/runtime.ts` — stamp both fields after `lintOpenApi` returns, at the same point `result.ok` is set
+3. `src/output/sinks.ts` — relativise returned artifact paths before merging into `result.artifacts`
+4. update unit test fixtures that construct `LintRunResult` directly
+5. patch version bump with changelog note: artifact paths are now relative (breaking for callers that used the absolute path directly)
+
+acceptance criteria:
+
+- `openapi-lint.json` includes `durationMs`, `failOn`, and relative artifact paths
+- two reports from different machines are structurally identical for the same run
+- existing tests pass without modification beyond fixture updates
+
 ### milestone 1.0
 
 goal: stabilize the architecture and package boundaries.

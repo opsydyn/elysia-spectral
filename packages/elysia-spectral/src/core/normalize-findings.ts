@@ -40,6 +40,8 @@ export const normalizeFindings = (
     ok: summary.error === 0,
     generatedAt: new Date().toISOString(),
     source: 'manual',
+    failOn: 'error',
+    durationMs: null,
     summary,
     findings,
   };

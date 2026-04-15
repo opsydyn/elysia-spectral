@@ -164,7 +164,7 @@ describe('createOpenApiLintRuntime', () => {
       expect(snapshot.openapi.startsWith('3.')).toBe(true);
       expect(snapshot.info.title).toBe('Runtime Snapshot API');
       expect(snapshot.paths['/users']).toBeDefined();
-      expect(result.artifacts?.specSnapshotPath).toBe(resolvedSnapshotPath);
+      expect(result.artifacts?.specSnapshotPath).toBe(snapshotPath);
     } finally {
       await rm(path.dirname(resolvedSnapshotPath), {
         recursive: true,
@@ -294,7 +294,7 @@ describe('createOpenApiLintRuntime', () => {
         }>;
       };
 
-      expect(result.artifacts?.sarifReportPath).toBe(resolvedSarifPath);
+      expect(result.artifacts?.sarifReportPath).toBe(sarifPath);
       expect(sarif.version).toBe('2.1.0');
       expect(sarif.runs[0]?.automationDetails?.id).toBe(
         '@opsydyn/elysia-spectral/openapi-lint',
@@ -354,7 +354,7 @@ describe('createOpenApiLintRuntime', () => {
       const result = await runtime.run(app);
       const junit = await readFile(resolvedJunitPath, 'utf8');
 
-      expect(result.artifacts?.junitReportPath).toBe(resolvedJunitPath);
+      expect(result.artifacts?.junitReportPath).toBe(junitPath);
       expect(junit).toContain('<testsuite name="OpenAPI lint"');
       expect(junit).toContain('<failure type="warn"');
       expect(junit).toContain('Issue:');
