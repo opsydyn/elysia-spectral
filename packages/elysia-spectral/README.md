@@ -565,17 +565,19 @@ git commit -m "chore: add openapi snapshot"
 
 If the snapshot has changed, the CI step fails and the diff is visible in the logs. Deliberate API changes are acknowledged by updating the committed snapshot — accidental ones are caught before they ship.
 
-### Generate a typed client with openapi-ts
+### Generate a typed client
 
-Use the committed OpenAPI snapshot as input to [`openapi-ts`](https://openapi-ts.dev) to keep a generated TypeScript client in sync with the API surface.
+**If your consumer is a TypeScript project that can import from your Elysia app, use [Eden Treaty](https://elysiajs.com/eden/treaty/overview) instead.** It derives types directly from the app instance with no codegen, no snapshot, and no drift.
 
-1. Install `openapi-ts`:
+```ts
+import { treaty } from '@elysiajs/eden'
+import type { App } from '../server'
 
-```bash
-bun add -d @hey-api/openapi-ts
+const client = treaty<App>('localhost:3000')
+// fully typed — zero codegen
 ```
 
-2. Add a codegen script to `package.json`:
+For vendor-agnostic consumers — cross-repo TypeScript, non-TypeScript clients, or a published SDK — use the committed OpenAPI snapshot as input to [`openapi-ts`](https://openapi-ts.dev):
 
 ```json
 {
@@ -585,7 +587,7 @@ bun add -d @hey-api/openapi-ts
 }
 ```
 
-3. Chain it after the lint step in CI:
+Chain it after the lint step in CI and guard against drift:
 
 ```yaml
 - name: Lint OpenAPI spec
@@ -598,7 +600,7 @@ bun add -d @hey-api/openapi-ts
   run: git diff --exit-code src/generated/client/
 ```
 
-The lint gate runs first — if the spec is invalid the codegen step never runs. The drift check ensures the committed client always matches the current spec.
+The lint gate runs first — if the spec is invalid the codegen step never runs.
 
 ### Work on this repository locally
 
