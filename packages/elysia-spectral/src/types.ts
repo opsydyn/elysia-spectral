@@ -26,6 +26,7 @@ export type OpenApiLintArtifacts = {
   junitReportPath?: string;
   sarifReportPath?: string;
   specSnapshotPath?: string;
+  brunoCollectionPath?: string;
 };
 
 export type OpenApiLintSinkContext = {
@@ -59,6 +60,7 @@ export type SpectralPluginOptions = {
     junitReportPath?: string;
     sarifReportPath?: string;
     specSnapshotPath?: string | true;
+    brunoCollectionPath?: string;
     pretty?: boolean;
     artifactWriteFailures?: ArtifactWriteFailureMode;
     sinks?: OpenApiLintSink[];

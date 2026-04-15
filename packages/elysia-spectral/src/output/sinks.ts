@@ -4,6 +4,7 @@ import type {
   OpenApiLintSinkContext,
   SpectralPluginOptions,
 } from '../types';
+import { writeBrunoCollection } from './bruno-reporter';
 import { reportToConsole, resolveReporter } from './console-reporter';
 import {
   resolveDefaultSpecSnapshotPath,
@@ -91,6 +92,27 @@ export const createOutputSinks = (
         );
 
         return { junitReportPath: writtenJunitReportPath };
+      },
+    });
+  }
+
+  const configuredBrunoCollectionPath = options.output?.brunoCollectionPath;
+
+  if (configuredBrunoCollectionPath) {
+    sinks.push({
+      name: 'Bruno collection',
+      kind: 'artifact',
+      async write(_result, context) {
+        const writtenPath = await writeBrunoCollection(
+          configuredBrunoCollectionPath,
+          context.spec,
+        );
+
+        reporter.artifact(
+          `OpenAPI lint wrote Bruno collection to ${writtenPath}.`,
+        );
+
+        return { brunoCollectionPath: writtenPath };
       },
     });
   }

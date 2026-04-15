@@ -497,6 +497,34 @@ JUnit output lets CI systems that consume test XML (Buildkite, CircleCI, GitLab,
   if: always()
 ```
 
+### Generate a Bruno collection
+
+Export the generated OpenAPI spec as a Bruno collection. Bruno is an open-source API client — generated collections let your team test API endpoints without manual import steps.
+
+```ts
+spectralPlugin({
+  output: {
+    brunoCollectionPath: './bruno/collection.json'
+  }
+})
+```
+
+The collection is written after each lint run — at startup, on healthcheck, or in CI. Commit it alongside the spec snapshot so it stays in sync with the API surface.
+
+To regenerate in CI as part of your lint script:
+
+```ts
+const runtime = createOpenApiLintRuntime({
+  preset: 'strict',
+  output: {
+    specSnapshotPath: './reports/openapi-snapshot.json',
+    brunoCollectionPath: './bruno/collection.json',
+  },
+})
+
+await runtime.run(app)
+```
+
 ### Track OpenAPI snapshot drift
 
 Commit the generated OpenAPI snapshot and use `git diff --exit-code` to detect when the API surface changes unexpectedly in a PR.

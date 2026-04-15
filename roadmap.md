@@ -178,6 +178,10 @@ remaining:
 
 - documented chaining into downstream generation or contract tooling (e.g. `openapi-ts`, Prism mock server)
 
+completed (late additions):
+
+- Bruno collection generation via `output.brunoCollectionPath` using `@usebruno/converters`
+
 ### milestone 1.0
 
 goal: stabilize the architecture and package boundaries.

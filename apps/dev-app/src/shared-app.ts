@@ -44,6 +44,9 @@ export const createExampleApp = (mode: ExampleMode) => {
             ? './artifacts/openapi-lint-unhappy.json'
             : './artifacts/openapi-lint.json',
           specSnapshotPath: true,
+          brunoCollectionPath: unhappy
+            ? './artifacts/bruno-unhappy.yml'
+            : './artifacts/bruno.yml',
         },
         healthcheck: {
           path: '/health/openapi-lint',
