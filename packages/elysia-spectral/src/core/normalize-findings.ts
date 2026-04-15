@@ -39,6 +39,7 @@ export const normalizeFindings = (
   return {
     ok: summary.error === 0,
     generatedAt: new Date().toISOString(),
+    source: 'manual',
     summary,
     findings,
   };

@@ -5,6 +5,7 @@ import { presets } from '../presets';
 import { PublicSpecProvider } from '../providers/public-spec-provider';
 import type {
   LintRunResult,
+  LintRunSource,
   OpenApiLintArtifacts,
   OpenApiLintRuntime,
   OpenApiLintRuntimeFailure,
@@ -32,7 +33,7 @@ export const createOpenApiLintRuntime = (
     lastSuccess: null,
     lastFailure: null,
     running: false,
-    async run(app: AnyElysia) {
+    async run(app: AnyElysia, source: LintRunSource = 'manual') {
       if (inFlight) {
         return await inFlight;
       }
@@ -72,6 +73,7 @@ export const createOpenApiLintRuntime = (
           }
 
           const result = await lintOpenApi(spec, loadedRuleset.ruleset);
+          result.source = source;
           await writeOutputSinks(
             result,
             spec,

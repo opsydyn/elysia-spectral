@@ -23,7 +23,7 @@ export const spectralPlugin = (options: SpectralPluginOptions = {}) => {
       }
 
       try {
-        await runtime.run(app);
+        await runtime.run(app, 'startup');
       } catch (error) {
         if (
           startupMode === 'report' &&
@@ -63,8 +63,8 @@ export const spectralPlugin = (options: SpectralPluginOptions = {}) => {
           const usedCache =
             !fresh && (runtime.latest !== null || runtime.running);
           const result = usedCache
-            ? (runtime.latest ?? (await runtime.run(currentApp)))
-            : await runtime.run(currentApp);
+            ? (runtime.latest ?? (await runtime.run(currentApp, 'healthcheck')))
+            : await runtime.run(currentApp, 'healthcheck');
 
           if (result === null) {
             set.status = 500;

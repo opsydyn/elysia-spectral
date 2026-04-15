@@ -11,6 +11,8 @@ export type StartupLintMode = 'enforce' | 'report' | 'off';
 
 export type OpenApiLintRuntimeStatus = 'idle' | 'running' | 'passed' | 'failed';
 
+export type LintRunSource = 'startup' | 'healthcheck' | 'manual';
+
 export type ArtifactWriteFailureMode = 'warn' | 'error';
 
 export type SpectralLogger = {
@@ -94,6 +96,7 @@ export type LintFinding = {
 export type LintRunResult = {
   ok: boolean;
   generatedAt: string;
+  source: LintRunSource;
   summary: {
     error: number;
     warn: number;
@@ -124,5 +127,5 @@ export type OpenApiLintRuntime = {
   lastSuccess: LintRunResult | null;
   lastFailure: OpenApiLintRuntimeFailure | null;
   running: boolean;
-  run: (app: AnyElysia) => Promise<LintRunResult>;
+  run: (app: AnyElysia, source?: LintRunSource) => Promise<LintRunResult>;
 };

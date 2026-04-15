@@ -5,6 +5,7 @@ import type { LintRunResult } from '../../src/types';
 const createResult = (): LintRunResult => ({
   ok: false,
   generatedAt: new Date().toISOString(),
+  source: 'manual',
   summary: {
     error: 0,
     warn: 1,
