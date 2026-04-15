@@ -4,9 +4,6 @@
   "workspaces": {
     "": {
       "name": "elysia-spectral-workspace",
-      "dependencies": {
-        "@usebruno/lang": "^0.35.0",
-      },
     },
     "apps/dev-app": {
       "name": "@opsydyn/elysia-spectral-dev-app",
@@ -24,7 +21,7 @@
     },
     "packages/elysia-spectral": {
       "name": "@opsydyn/elysia-spectral",
-      "version": "0.3.0",
+      "version": "0.4.0",
       "dependencies": {
         "@stoplight/spectral-core": "^1.22.0",
         "@stoplight/spectral-formats": "^1.8.0",
@@ -32,6 +29,7 @@
         "@stoplight/spectral-parsers": "^1.0.4",
         "@stoplight/spectral-rulesets": "^1.22.1",
         "@usebruno/converters": "^0.18.1",
+        "@usebruno/lang": "^0.35.0",
         "signale": "^1.4.0",
         "yaml": "^2.8.1",
       },
