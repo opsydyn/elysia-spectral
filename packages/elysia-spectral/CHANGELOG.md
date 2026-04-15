@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.0](https://github.com/opsydyn/elysia-spectral/compare/v0.3.0...v0.4.0) (2026-04-15)
+
+
+### Features
+
+* add source metadata to LintRunResult ([bdd5a81](https://github.com/opsydyn/elysia-spectral/commit/bdd5a817c00b5fdccf4e1d27c8dbf4c6d4c36d2c))
+
 ## [0.3.0](https://github.com/opsydyn/elysia-spectral/compare/v0.2.5...v0.3.0) (2026-04-14)
 
 
