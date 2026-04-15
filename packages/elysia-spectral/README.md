@@ -501,7 +501,20 @@ JUnit output lets CI systems that consume test XML (Buildkite, CircleCI, GitLab,
 
 Export the generated OpenAPI spec as a Bruno collection. Bruno is an open-source API client — generated collections let your team test API endpoints without manual import steps.
 
+The output format is determined by the file extension:
+
+- `.yml` / `.yaml` — OpenCollection YAML (recommended, Bruno v3.0.0+)
+- `.json` — Bruno collection JSON (compatible with all Bruno versions)
+
 ```ts
+// OpenCollection YAML — recommended
+spectralPlugin({
+  output: {
+    brunoCollectionPath: './bruno/collection.yml'
+  }
+})
+
+// Bruno JSON — for older Bruno versions
 spectralPlugin({
   output: {
     brunoCollectionPath: './bruno/collection.json'
@@ -518,7 +531,7 @@ const runtime = createOpenApiLintRuntime({
   preset: 'strict',
   output: {
     specSnapshotPath: './reports/openapi-snapshot.json',
-    brunoCollectionPath: './bruno/collection.json',
+    brunoCollectionPath: './bruno/collection.yml',
   },
 })
 
@@ -592,6 +605,7 @@ type OpenApiLintArtifacts = {
   junitReportPath?: string
   sarifReportPath?: string
   specSnapshotPath?: string
+  brunoCollectionPath?: string
 }
 
 type OpenApiLintSink = {
@@ -635,6 +649,8 @@ type SpectralPluginOptions = {
     junitReportPath?: string
     sarifReportPath?: string
     specSnapshotPath?: string | true
+    /** .yml/.yaml → OpenCollection YAML (Bruno v3+), .json → Bruno collection JSON */
+    brunoCollectionPath?: string
     pretty?: boolean
     artifactWriteFailures?: ArtifactWriteFailureMode
     sinks?: OpenApiLintSink[]
@@ -743,7 +759,7 @@ Example successful response:
 
 The current output model has two layers:
 
-- convenience options such as `jsonReportPath`, `junitReportPath`, `specSnapshotPath`, and `sarifReportPath`
+- convenience options such as `jsonReportPath`, `junitReportPath`, `specSnapshotPath`, `sarifReportPath`, and `brunoCollectionPath`
 - sink abstractions under `output.sinks`
 
 The convenience options compile down to built-in sinks so the current API stays simple while the internal output model becomes extensible.
