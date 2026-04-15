@@ -523,7 +523,7 @@ const resolveExtendsEntry = (value: string): RulesetDefinition => {
 
   if (!resolved) {
     throw new RulesetLoadError(
-      `Unsupported ruleset extend target: ${value}. v0.1 supports spectral:oas.`,
+      `Unsupported ruleset extend target: "${value}". Supported extend targets: spectral:oas.`,
     );
   }
 

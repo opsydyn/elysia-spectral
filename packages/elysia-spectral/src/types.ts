@@ -110,10 +110,6 @@ export type LintRunResult = {
   findings: LintFinding[];
 };
 
-export interface SpecProvider {
-  getSpec(): Promise<unknown>;
-}
-
 export type OpenApiLintRuntimeFailure = {
   name: string;
   message: string;

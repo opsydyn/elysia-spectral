@@ -14,7 +14,7 @@ import type {
 } from '../types';
 import { lintOpenApi } from './lint-openapi';
 import { loadResolvedRuleset } from './load-ruleset';
-import { enforceThreshold } from './thresholds';
+import { enforceThreshold, shouldFail } from './thresholds';
 
 export const createOpenApiLintRuntime = (
   options: SpectralPluginOptions = {},
@@ -74,6 +74,7 @@ export const createOpenApiLintRuntime = (
 
           const result = await lintOpenApi(spec, loadedRuleset.ruleset);
           result.source = source;
+          result.ok = !shouldFail(result, options.failOn ?? 'error');
           await writeOutputSinks(
             result,
             spec,
@@ -194,10 +195,6 @@ const mergeArtifacts = (
   ...current,
   ...next,
 });
-
-export const isEnabled = (options: SpectralPluginOptions = {}): boolean => {
-  return resolveStartupMode(options) !== 'off';
-};
 
 export const resolveStartupMode = (
   options: SpectralPluginOptions = {},

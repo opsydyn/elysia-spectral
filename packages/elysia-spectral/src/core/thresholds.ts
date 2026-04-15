@@ -24,7 +24,7 @@ export class OpenApiLintThresholdError extends Error {
   }
 }
 
-export const exceedsThreshold = (
+const exceedsThreshold = (
   severity: LintSeverity,
   threshold: SeverityThreshold,
 ): boolean => {

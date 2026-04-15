@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test';
-import { enforceThreshold, exceedsThreshold } from '../../src/core/thresholds';
+import { enforceThreshold, shouldFail } from '../../src/core/thresholds';
 import type { LintRunResult } from '../../src/types';
 
 const createResult = (): LintRunResult => ({
@@ -29,10 +29,37 @@ const createResult = (): LintRunResult => ({
 });
 
 describe('thresholds', () => {
-  it('compares severities correctly', () => {
-    expect(exceedsThreshold('error', 'warn')).toBe(true);
-    expect(exceedsThreshold('info', 'warn')).toBe(false);
-    expect(exceedsThreshold('hint', 'never')).toBe(false);
+  it('compares severities correctly via shouldFail', () => {
+    const base = createResult().findings[0];
+    const withError: LintRunResult = {
+      ...createResult(),
+      summary: { error: 1, warn: 0, info: 0, hint: 0, total: 1 },
+      findings: [
+        {
+          code: base?.code ?? 'x',
+          message: base?.message ?? '',
+          severity: 'error',
+          path: [],
+          documentPointer: '',
+        },
+      ],
+    };
+    const withInfo: LintRunResult = {
+      ...createResult(),
+      findings: [
+        {
+          code: base?.code ?? 'x',
+          message: base?.message ?? '',
+          severity: 'info',
+          path: [],
+          documentPointer: '',
+        },
+      ],
+    };
+
+    expect(shouldFail(withError, 'warn')).toBe(true);
+    expect(shouldFail(withInfo, 'warn')).toBe(false);
+    expect(shouldFail(createResult(), 'never')).toBe(false);
   });
 
   it('throws when findings meet the configured threshold', () => {

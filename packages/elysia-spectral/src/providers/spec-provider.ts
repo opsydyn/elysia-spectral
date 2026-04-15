@@ -1,5 +1,9 @@
 import type { AnyElysia } from 'elysia';
-import type { SpecProvider, SpectralPluginOptions } from '../types';
+import type { SpectralPluginOptions } from '../types';
+
+type SpecProvider = {
+  getSpec(): Promise<unknown>;
+};
 
 export type PublicSpecProviderOptions = SpectralPluginOptions['source'];
 
