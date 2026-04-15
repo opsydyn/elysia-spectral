@@ -426,28 +426,100 @@ spectralPlugin({
 
 Use `'warn'` for local development and `'error'` when artifact generation is required.
 
-### Run the runtime in CI or tests
+### Run the runtime in CI
+
+Use `createOpenApiLintRuntime` to run a standalone lint check in CI without starting an HTTP server. Import your Elysia app instance directly — the runtime uses `app.handle()` in-process to retrieve the generated OpenAPI document. No port binding required.
+
+Create a script at `scripts/lint-openapi.ts`:
 
 ```ts
-import { Elysia } from 'elysia'
-import { openapi } from '@elysiajs/openapi'
+import { app } from '../src/app'
 import { createOpenApiLintRuntime } from '@opsydyn/elysia-spectral'
 
-const app = new Elysia().use(openapi())
-
 const runtime = createOpenApiLintRuntime({
-  ruleset: './spectral.yaml',
+  preset: 'strict',
   failOn: 'error',
   output: {
     console: true,
-    jsonReportPath: './artifacts/openapi-lint.json',
-    specSnapshotPath: true,
-    artifactWriteFailures: 'error'
-  }
+    sarifReportPath: './reports/openapi.sarif',
+    junitReportPath: './reports/openapi.junit.xml',
+    specSnapshotPath: './reports/openapi-snapshot.json',
+    artifactWriteFailures: 'error',
+  },
 })
 
-await runtime.run(app)
+try {
+  await runtime.run(app)
+  process.exit(0)
+} catch {
+  process.exit(1)
+}
 ```
+
+Run it as a CI step:
+
+```yaml
+- name: Lint OpenAPI spec
+  run: bun scripts/lint-openapi.ts
+```
+
+### Integrate SARIF with GitHub code scanning
+
+SARIF output maps lint findings to code locations and surfaces them as GitHub code scanning alerts on pull requests.
+
+```yaml
+- name: Lint OpenAPI spec
+  run: bun scripts/lint-openapi.ts
+
+- name: Upload SARIF to GitHub code scanning
+  uses: github/codeql-action/upload-sarif@v3
+  with:
+    sarif_file: reports/openapi.sarif
+  if: always()
+```
+
+`if: always()` ensures the SARIF upload runs even when the lint step fails, so findings are visible on failing PRs.
+
+### Report lint findings as JUnit test results
+
+JUnit output lets CI systems that consume test XML (Buildkite, CircleCI, GitLab, GitHub via third-party actions) show lint findings alongside test results.
+
+```yaml
+- name: Lint OpenAPI spec
+  run: bun scripts/lint-openapi.ts
+
+- name: Publish lint results
+  uses: dorny/test-reporter@v1
+  with:
+    name: OpenAPI Lint
+    path: reports/openapi.junit.xml
+    reporter: java-junit
+  if: always()
+```
+
+### Track OpenAPI snapshot drift
+
+Commit the generated OpenAPI snapshot and use `git diff --exit-code` to detect when the API surface changes unexpectedly in a PR.
+
+1. Generate and commit the initial snapshot:
+
+```bash
+bun scripts/lint-openapi.ts
+git add reports/openapi-snapshot.json
+git commit -m "chore: add openapi snapshot"
+```
+
+1. In CI, regenerate the snapshot and check for drift:
+
+```yaml
+- name: Lint OpenAPI spec
+  run: bun scripts/lint-openapi.ts
+
+- name: Check for snapshot drift
+  run: git diff --exit-code reports/openapi-snapshot.json
+```
+
+If the snapshot has changed, the CI step fails and the diff is visible in the logs. Deliberate API changes are acknowledged by updating the committed snapshot — accidental ones are caught before they ship.
 
 ### Work on this repository locally
 
@@ -606,6 +678,7 @@ Example successful response:
   "result": {
     "ok": true,
     "generatedAt": "2026-04-06T12:00:00.000Z",
+    "source": "startup",
     "summary": {
       "error": 0,
       "warn": 0,

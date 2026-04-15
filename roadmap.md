@@ -149,43 +149,34 @@ acceptance criteria:
 
 goal: ship stronger first-party governance presets.
 
-status: not started in earnest
+status: complete
 
-planned scope:
+completed:
 
-- add preset policy packs:
-  - `recommended`
-  - `server`
-  - `strict`
-- strengthen rules around:
-  - operation summaries
-  - descriptions
-  - tags
-  - `operationId` presence and consistency
-  - response schema coverage
-  - reusable error model expectations
-  - examples where they materially improve downstream generation
-- document which rules are style-focused versus contract-quality-focused
+- `recommended`, `server`, and `strict` presets shipped
+- RFC 9457 Problem Details enforcement in `strict` via custom Spectral function
+- `preset` option in plugin and runtime
+- `LintRunSource` metadata added to `LintRunResult` (`startup`, `healthcheck`, `manual`)
+- README updated with preset comparison table, RFC 9457 standards reference, and What Is Elysia? section
 
 ### milestone 0.6
 
 goal: make CI and downstream tooling first-class.
 
-status: partially enabled, not yet formalized
+status: in progress
 
-already present:
+completed:
 
 - reusable core runtime works in CI and tests
-- JSON output and spec snapshots are available
+- JSON, SARIF, and JUnit outputs available
 - artifact write policy can enforce CI correctness
+- documented CI entrypoint (`createOpenApiLintRuntime`) as a primary workflow
+- documented GitHub Actions integration for SARIF code scanning and JUnit test reporters
+- documented OpenAPI snapshot drift detection with `git diff --exit-code`
 
-not yet formalized:
+remaining:
 
-- documented CI entrypoint as a primary workflow
-- stable machine-oriented formats beyond JSON
-- optional JUnit output if needed
-- documented snapshot and diff workflows
-- documented chaining into downstream generation or contract tooling
+- documented chaining into downstream generation or contract tooling (e.g. `openapi-ts`, Prism mock server)
 
 ### milestone 1.0
 
@@ -229,8 +220,6 @@ these should stay out unless the product direction changes:
 
 the next high-leverage implementation tasks are now:
 
-1. define the first preset set for `recommended`, `server`, and `strict` (milestone 0.5)
-2. document CI as a primary supported workflow using `createOpenApiLintRuntime` (milestone 0.6)
-3. add optional runtime source metadata such as `startup`, `healthcheck`, or `manual` (milestone 0.3 polish)
-4. document snapshot and diff workflows for downstream contract tooling (milestone 0.6)
-5. stabilize public API surface and package boundaries for `1.0`
+1. document downstream chaining into client generation tooling (milestone 0.6)
+2. stabilize public API surface and package boundaries for `1.0`
+3. audit backwards compatibility and safe production defaults before `1.0`
