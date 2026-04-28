@@ -59,7 +59,7 @@ describe('spectralPlugin dashboard', () => {
       expect(response.status).toBe(200);
       expect(response.headers.get('content-type')).toContain('text/html');
       expect(body.startsWith('<!doctype html>')).toBe(true);
-      expect(body).toContain('OpenAPI Lint');
+      expect(body).toContain('Elysia Spectral Lint');
       expect(body).toContain('Re-run');
       expect(body).toMatch(/banner-(pass|fail)/);
     } finally {
@@ -79,7 +79,7 @@ describe('spectralPlugin dashboard', () => {
         `http://127.0.0.1:${app.server?.port}/__lint`,
       );
       expect(response.status).toBe(200);
-      expect(await response.text()).toContain('OpenAPI Lint');
+      expect(await response.text()).toContain('Elysia Spectral Lint');
     } finally {
       app.stop();
     }

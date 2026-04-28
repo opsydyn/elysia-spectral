@@ -51,6 +51,9 @@ export const createExampleApp = (mode: ExampleMode) => {
         healthcheck: {
           path: '/health/openapi-lint',
         },
+        dashboard: {
+          path: '/api-lint/dashboard',
+        },
       }),
     )
     .get(
