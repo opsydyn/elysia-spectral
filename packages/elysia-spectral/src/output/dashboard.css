@@ -139,6 +139,15 @@ h1 {
 
 .theme-switch {
   display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.theme-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
 }
 
 .theme-switch select {

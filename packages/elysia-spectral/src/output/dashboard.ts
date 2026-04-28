@@ -37,9 +37,9 @@ export const renderDashboard = (input: DashboardRenderInput): string => {
     <h1>Elysia Spectral Lint</h1>
   </div>
   <div class="actions">
-    <label class="theme-switch" title="Theme">
-      <span class="visually-hidden">Theme</span>
-      <select data-theme-switcher>
+    <label class="theme-switch" title="Switch dashboard theme">
+      <span class="theme-label">Theme</span>
+      <select data-theme-switcher aria-label="Dashboard theme">
         <option value="astro">Astro Houston</option>
         <option value="tron">Tron Legacy</option>
         <option value="808">Detroit 808</option>
