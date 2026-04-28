@@ -37,8 +37,7 @@ describe('normalizeFindings (property-based)', () => {
     fc.assert(
       fc.property(fc.array(diagnosticArb, { maxLength: 30 }), (diagnostics) => {
         const { summary } = normalizeFindings(diagnostics, {});
-        const sum =
-          summary.error + summary.warn + summary.info + summary.hint;
+        const sum = summary.error + summary.warn + summary.info + summary.hint;
         expect(sum).toBe(summary.total);
       }),
     );

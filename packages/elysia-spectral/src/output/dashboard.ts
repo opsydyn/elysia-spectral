@@ -83,9 +83,7 @@ const renderReport = (
   return `${banner}${meta}${summary}${artifacts}${findings}`;
 };
 
-const renderArtifacts = (
-  artifacts: LintRunResult['artifacts'],
-): string => {
+const renderArtifacts = (artifacts: LintRunResult['artifacts']): string => {
   if (!artifacts || Object.keys(artifacts).length === 0) {
     return '';
   }

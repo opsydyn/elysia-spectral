@@ -51,19 +51,23 @@ const mountResource = <App extends ReturnType<typeof base>>(
         tags: ['Resources'],
       },
     })
-    .get(`/${resource}/:id`, () => ({
-      id: '1',
-      name: 'example',
-      createdAt: new Date().toISOString(),
-    }), {
-      response: { 200: itemSchema },
-      detail: {
-        summary: `Get ${resource}`,
-        description: `Returns a single ${resource} item by id.`,
-        operationId: `get${capitalize(resource)}`,
-        tags: ['Resources'],
+    .get(
+      `/${resource}/:id`,
+      () => ({
+        id: '1',
+        name: 'example',
+        createdAt: new Date().toISOString(),
+      }),
+      {
+        response: { 200: itemSchema },
+        detail: {
+          summary: `Get ${resource}`,
+          description: `Returns a single ${resource} item by id.`,
+          operationId: `get${capitalize(resource)}`,
+          tags: ['Resources'],
+        },
       },
-    });
+    );
 };
 
 const capitalize = (value: string): string =>
