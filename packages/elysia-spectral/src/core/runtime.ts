@@ -85,19 +85,21 @@ export const createOpenApiLintRuntime = (
           );
 
           runtime.latest = result;
+          finalizeRuntimeRun(runtime, startedAt);
+          result.durationMs = runtime.durationMs;
 
           reporter.complete('OpenAPI lint completed.');
           enforceThreshold(result, options.failOn ?? 'error');
 
           runtime.status = 'passed';
           runtime.lastSuccess = result;
-          finalizeRuntimeRun(runtime, startedAt);
-          result.durationMs = runtime.durationMs;
           return result;
         } catch (error) {
           runtime.status = 'failed';
           runtime.lastFailure = toRuntimeFailure(error);
-          finalizeRuntimeRun(runtime, startedAt);
+          if (runtime.durationMs === null) {
+            finalizeRuntimeRun(runtime, startedAt);
+          }
           throw error;
         }
       })();
