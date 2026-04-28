@@ -118,10 +118,22 @@ export const spectralPlugin = (options: SpectralPluginOptions = {}) => {
 
   if (options.dashboard) {
     const dashboardPath = options.dashboard.path ?? '/__openapi/dashboard';
+    const bearerToken = options.dashboard.bearerToken;
 
     plugin = plugin.get(
       dashboardPath,
       async ({ request, set }) => {
+        if (bearerToken) {
+          const header = request.headers.get('authorization') ?? '';
+          const provided = header.startsWith('Bearer ') ? header.slice(7) : '';
+          if (provided !== bearerToken) {
+            set.status = 401;
+            set.headers['www-authenticate'] = 'Bearer realm="elysia-spectral"';
+            set.headers['content-type'] = 'text/plain; charset=utf-8';
+            return 'Unauthorized';
+          }
+        }
+
         const fresh = new URL(request.url).searchParams.get('fresh') === '1';
         const threshold = options.failOn ?? 'error';
         const currentApp = hostAppRef.current;

@@ -128,4 +128,33 @@ describe('spectralPlugin dashboard', () => {
       app.stop();
     }
   });
+
+  it('rejects requests without a matching bearer token when configured', async () => {
+    const app = buildApp({
+      output: { console: false },
+      dashboard: { bearerToken: 'sekret' },
+      failOn: 'never',
+    }).listen(0);
+
+    try {
+      const base = `http://127.0.0.1:${app.server?.port}/__openapi/dashboard`;
+
+      const missing = await fetch(base);
+      expect(missing.status).toBe(401);
+      expect(missing.headers.get('www-authenticate')).toContain('Bearer');
+
+      const wrong = await fetch(base, {
+        headers: { authorization: 'Bearer nope' },
+      });
+      expect(wrong.status).toBe(401);
+
+      const ok = await fetch(base, {
+        headers: { authorization: 'Bearer sekret' },
+      });
+      expect(ok.status).toBe(200);
+      expect(await ok.text()).toContain('Elysia Spectral Lint');
+    } finally {
+      app.stop();
+    }
+  });
 });

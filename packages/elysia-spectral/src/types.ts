@@ -58,6 +58,7 @@ export type SpectralPluginOptions = {
     | false
     | {
         path?: string;
+        bearerToken?: string;
       };
   output?: {
     console?: boolean;

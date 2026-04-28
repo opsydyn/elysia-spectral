@@ -362,6 +362,19 @@ spectralPlugin({
 
 `dashboard: {}` mounts the default path (`/__openapi/dashboard`); pass `path` to override.
 
+To gate the dashboard behind a static bearer token, pass `bearerToken`:
+
+```ts
+spectralPlugin({
+  dashboard: {
+    path: '/__openapi/dashboard',
+    bearerToken: process.env.LINT_DASHBOARD_TOKEN
+  }
+})
+```
+
+When `bearerToken` is set the route returns `401 Unauthorized` (with a `WWW-Authenticate: Bearer` header) unless the request carries a matching `Authorization: Bearer <token>` header. Leave `bearerToken` undefined to keep the route open — useful in local dev. This mirrors the bearer pattern documented in the [Elysia OpenAPI guide](https://elysiajs.com/patterns/openapi).
+
 What it surfaces:
 
 - pass / fail banner at the configured `failOn` threshold
@@ -724,7 +737,7 @@ type SpectralPluginOptions = {
   /** Severity level at which the lint run is considered failed. Defaults to 'error'. */
   failOn?: SeverityThreshold
   healthcheck?: false | { path?: string }
-  dashboard?: false | { path?: string }
+  dashboard?: false | { path?: string; bearerToken?: string }
   output?: {
     /** Print findings to the console. Default: true. */
     console?: boolean
