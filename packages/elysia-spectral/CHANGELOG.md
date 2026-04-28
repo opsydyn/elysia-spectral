@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.1.0](https://github.com/opsydyn/elysia-spectral/compare/v1.0.0...v1.1.0) (2026-04-28)
+
+
+### Features
+
+* add HTML dashboard endpoint ([beba3cc](https://github.com/opsydyn/elysia-spectral/commit/beba3cc529960c443cb536dd3f4ce33ecb589cb8))
+* redesign lint dashboard with monospace UI and interactive filters ([23ab4bb](https://github.com/opsydyn/elysia-spectral/commit/23ab4bbfde3b55074101256814f10daeaae0097b))
+
+
+### Bug Fixes
+
+* stamp result.durationMs before threshold enforcement ([cafcf46](https://github.com/opsydyn/elysia-spectral/commit/cafcf4635bf72b0eb9848352901ec5725eca9501))
+
 ## [1.0.0](https://github.com/opsydyn/elysia-spectral/compare/v0.5.2...v1.0.0) (2026-04-15)
 
 
