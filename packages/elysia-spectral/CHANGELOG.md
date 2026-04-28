@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.2.0](https://github.com/opsydyn/elysia-spectral/compare/v1.1.1...v1.2.0) (2026-04-28)
+
+
+### Features
+
+* optional bearer auth for the lint dashboard route ([7360e1c](https://github.com/opsydyn/elysia-spectral/commit/7360e1c323328005160598832dbd02b315a0cd2f))
+
+
+### Bug Fixes
+
+* publish dashboard documentation update ([c8d656a](https://github.com/opsydyn/elysia-spectral/commit/c8d656ae1a6bbcd67ce63bd8e430861b07cd216b))
+
 ## [1.1.1](https://github.com/opsydyn/elysia-spectral/compare/v1.1.0...v1.1.1) (2026-04-28)
 
 
