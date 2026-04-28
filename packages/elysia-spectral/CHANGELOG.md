@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.5.0](https://github.com/opsydyn/elysia-spectral/compare/v1.4.0...v1.5.0) (2026-04-28)
+
+
+### Features
+
+* **dashboard:** add Elysia theme using Scalar palette ([58eb58f](https://github.com/opsydyn/elysia-spectral/commit/58eb58fcc04fe48bfce49380a128fd0507aecdcf))
+
 ## [1.4.0](https://github.com/opsydyn/elysia-spectral/compare/v1.3.1...v1.4.0) (2026-04-28)
 
 
