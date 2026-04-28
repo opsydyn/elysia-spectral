@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.1](https://github.com/opsydyn/elysia-spectral/compare/v1.3.0...v1.3.1) (2026-04-28)
+
+
+### Bug Fixes
+
+* **dashboard:** stop double-encoding inlined CSS and JS assets ([a4457bf](https://github.com/opsydyn/elysia-spectral/commit/a4457bf87fc30e5a0e68a580796085f39aa49dbe))
+
 ## [1.3.0](https://github.com/opsydyn/elysia-spectral/compare/v1.2.0...v1.3.0) (2026-04-28)
 
 
