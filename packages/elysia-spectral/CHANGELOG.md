@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.1](https://github.com/opsydyn/elysia-spectral/compare/v1.1.0...v1.1.1) (2026-04-28)
+
+
+### Bug Fixes
+
+* trigger release pipeline ([50a07c1](https://github.com/opsydyn/elysia-spectral/commit/50a07c172eac778355d66c942affe9dcccc048b7))
+
 ## [1.1.0](https://github.com/opsydyn/elysia-spectral/compare/v1.0.0...v1.1.0) (2026-04-28)
 
 
