@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.4.0](https://github.com/opsydyn/elysia-spectral/compare/v1.3.1...v1.4.0) (2026-04-28)
+
+
+### Features
+
+* **dashboard:** redesign with sharp-edge knowledge-store aesthetic ([81c3082](https://github.com/opsydyn/elysia-spectral/commit/81c3082b49a79a660d6d12e035ad57a9e2f24253))
+
 ## [1.3.1](https://github.com/opsydyn/elysia-spectral/compare/v1.3.0...v1.3.1) (2026-04-28)
 
 
