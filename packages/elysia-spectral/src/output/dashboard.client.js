@@ -1,6 +1,6 @@
 (() => {
   const THEME_KEY = 'elysia-spectral-theme';
-  const THEMES = ['astro', 'tron', '808'];
+  const THEMES = ['astro', 'elysia', 'tron', '808'];
   let stored = null;
   try {
     stored = localStorage.getItem(THEME_KEY);

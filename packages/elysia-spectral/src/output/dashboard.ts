@@ -44,6 +44,7 @@ export const renderDashboard = (input: DashboardRenderInput): string => {
       <span class="theme-label">Theme</span>
       <select data-theme-switcher aria-label="Dashboard theme">
         <option value="astro">Astro Houston</option>
+        <option value="elysia">Elysia</option>
         <option value="tron">Tron Legacy</option>
         <option value="808">Detroit 808</option>
       </select>
