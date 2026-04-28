@@ -15,6 +15,10 @@ const diagnosticArb: fc.Arbitrary<ISpectralDiagnostic> = fc.record({
   message: fc.string({ maxLength: 64 }),
   path: fc.array(pathSegmentArb, { maxLength: 6 }),
   severity: severityNumberArb,
+  range: fc.constant({
+    start: { line: 0, character: 0 },
+    end: { line: 0, character: 1 },
+  }),
 });
 
 const severityNumberToName = ['error', 'warn', 'info', 'hint'] as const;

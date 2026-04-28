@@ -2,6 +2,7 @@ import { type AnyElysia, Elysia } from 'elysia';
 import { createOpenApiLintRuntime, resolveStartupMode } from './core/runtime';
 import { OpenApiLintThresholdError, shouldFail } from './core/thresholds';
 import { resolveReporter } from './output/console-reporter';
+import { renderDashboard } from './output/dashboard';
 import type { SpectralPluginOptions } from './types';
 
 export const spectralPlugin = (options: SpectralPluginOptions = {}) => {
@@ -110,6 +111,70 @@ export const spectralPlugin = (options: SpectralPluginOptions = {}) => {
         detail: {
           hide: true,
           summary: 'OpenAPI lint healthcheck',
+        },
+      },
+    );
+  }
+
+  if (options.dashboard) {
+    const dashboardPath = options.dashboard.path ?? '/__openapi/dashboard';
+
+    plugin = plugin.get(
+      dashboardPath,
+      async ({ request, set }) => {
+        const fresh = new URL(request.url).searchParams.get('fresh') === '1';
+        const threshold = options.failOn ?? 'error';
+        const currentApp = hostAppRef.current;
+
+        set.headers['content-type'] = 'text/html; charset=utf-8';
+
+        if (!currentApp) {
+          set.status = 503;
+          return renderDashboard({
+            result: null,
+            threshold,
+            cached: false,
+            error: 'OpenAPI lint runtime is not initialized yet.',
+            refreshPath: dashboardPath,
+          });
+        }
+
+        try {
+          const usedCache = !fresh && runtime.latest !== null;
+          const result = usedCache
+            ? runtime.latest
+            : await runtime.run(currentApp, 'manual');
+
+          return renderDashboard({
+            result,
+            threshold,
+            cached: usedCache,
+            refreshPath: dashboardPath,
+          });
+        } catch (error) {
+          if (error instanceof OpenApiLintThresholdError) {
+            return renderDashboard({
+              result: error.result,
+              threshold,
+              cached: false,
+              refreshPath: dashboardPath,
+            });
+          }
+
+          set.status = 500;
+          return renderDashboard({
+            result: null,
+            threshold,
+            cached: false,
+            error: error instanceof Error ? error.message : String(error),
+            refreshPath: dashboardPath,
+          });
+        }
+      },
+      {
+        detail: {
+          hide: true,
+          summary: 'OpenAPI lint dashboard',
         },
       },
     );

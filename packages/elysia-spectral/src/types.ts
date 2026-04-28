@@ -54,6 +54,11 @@ export type SpectralPluginOptions = {
     | {
         path?: string;
       };
+  dashboard?:
+    | false
+    | {
+        path?: string;
+      };
   output?: {
     console?: boolean;
     jsonReportPath?: string;
