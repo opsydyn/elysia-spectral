@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.3.0](https://github.com/opsydyn/elysia-spectral/compare/v1.2.0...v1.3.0) (2026-04-28)
+
+
+### Features
+
+* **dashboard:** add theme switcher and extract dashboard assets ([08217c8](https://github.com/opsydyn/elysia-spectral/commit/08217c8e786220ca1f5b613ac18e2d266ee8d928))
+
+
+### Bug Fixes
+
+* **dashboard:** label theme switcher visibly ([fb74c82](https://github.com/opsydyn/elysia-spectral/commit/fb74c828d31063cb4d667578789811fcb1f35642))
+
 ## [1.2.0](https://github.com/opsydyn/elysia-spectral/compare/v1.1.1...v1.2.0) (2026-04-28)
 
 
