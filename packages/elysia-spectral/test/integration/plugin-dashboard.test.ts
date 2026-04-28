@@ -62,6 +62,10 @@ describe('spectralPlugin dashboard', () => {
       expect(body).toContain('Elysia Spectral Lint');
       expect(body).toContain('Re-run');
       expect(body).toMatch(/banner-(pass|fail)/);
+      expect(body).toContain('data-theme-switcher');
+      expect(body).toContain('value="astro"');
+      expect(body).toContain('value="tron"');
+      expect(body).toContain('value="808"');
     } finally {
       app.stop();
     }

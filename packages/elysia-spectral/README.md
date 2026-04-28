@@ -386,6 +386,12 @@ What it surfaces:
 
 Keyboard shortcuts: `r` re-runs, `/` focuses the filter, `Enter`/`Space` toggles the focused severity chip.
 
+Three dark themes ship with the dashboard, selectable from the header dropdown and persisted per-browser via `localStorage`:
+
+- **Astro Houston** (default) — purple / blue gradient
+- **Tron Legacy** — cyan neon on near-black
+- **Detroit 808** — TR-808 amber, red, and yellow
+
 Append `?fresh=1` to force a fresh lint run instead of returning the cached result.
 
 | State | Screenshot |
@@ -717,7 +723,7 @@ That example uses `startup.mode: 'report'`, so the app still boots while the pac
 ### Package API
 
 ```ts
-// ── Vocabulary types ──────────────────────────────────────────────────────────
+// ── Ubiquitous language types ──────────────────────────────────────────────────────────
 
 type PresetName = 'recommended' | 'server' | 'strict'
 type LintSeverity = 'error' | 'warn' | 'info' | 'hint'
