@@ -38,7 +38,8 @@
     "build": "tsdown",
     "typecheck": "tsc --noEmit",
     "test": "bun test",
-    "test:watch": "bun test --watch"
+    "test:watch": "bun test --watch",
+    "bench": "RUN_BENCH=1 bun test ./test/benchmark"
   },
   "keywords": [
     "elysia",
@@ -82,6 +83,7 @@
     "@types/node": "^25.6.0",
     "@types/signale": "^1.4.7",
     "elysia": "^1.4.0",
+    "fast-check": "^4.7.0",
     "tsdown": "^0.21.8",
     "typescript": "^5.8.3"
   }
