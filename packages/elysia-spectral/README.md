@@ -62,6 +62,7 @@ Current package scope:
 - Bruno collection output (OpenCollection YAML or JSON)
 - reusable runtime for CI and tests
 - opt-in healthcheck endpoint for cached and fresh runs
+- opt-in HTML lint dashboard with severity filters, search, and copy-friendly artifact paths
 
 ## Data flow
 
@@ -346,6 +347,41 @@ Behavior:
 - the route returns `200` when findings stay below `failOn`
 - the route returns `503` when findings meet or exceed `failOn`
 - the route is hidden from generated OpenAPI docs
+
+### Add an HTML lint dashboard endpoint
+
+The dashboard route is opt-in and renders the latest lint result as a self-contained HTML page — no JS bundle, no build step, no external assets.
+
+```ts
+spectralPlugin({
+  dashboard: {
+    path: '/__openapi/dashboard'
+  }
+})
+```
+
+`dashboard: {}` mounts the default path (`/__openapi/dashboard`); pass `path` to override.
+
+What it surfaces:
+
+- pass / fail banner at the configured `failOn` threshold
+- run metadata (timestamp, source, duration, cache hit)
+- severity summary chips that filter the findings table
+- a search input that matches rule code, operation, message, and JSON pointer
+- copy-to-clipboard buttons next to artifact paths
+- the trademarked `SPEC IS TIGHT, SHIP IT RIGHT` tagline on a clean run
+
+Keyboard shortcuts: `r` re-runs, `/` focuses the filter, `Enter`/`Space` toggles the focused severity chip.
+
+Append `?fresh=1` to force a fresh lint run instead of returning the cached result.
+
+| State | Screenshot |
+| --- | --- |
+| Pass | ![Dashboard pass state](https://raw.githubusercontent.com/opsydyn/elysia-spectral/main/docs/screenshots/dashboard-happy.png) |
+| Fail | ![Dashboard fail state](https://raw.githubusercontent.com/opsydyn/elysia-spectral/main/docs/screenshots/dashboard-unhappy.png) |
+| Recovered | ![Dashboard recovered state](https://raw.githubusercontent.com/opsydyn/elysia-spectral/main/docs/screenshots/dashboard-unhappy-fixed.png) |
+
+The dashboard is hidden from generated OpenAPI docs and is intended for local and internal-only environments. Gate it behind your standard auth or environment checks before exposing it on a public host.
 
 ### Persist JSON reports and OpenAPI snapshots
 
@@ -651,6 +687,7 @@ That starts `apps/dev-app` with:
 - OpenAPI UI at `/openapi`
 - raw OpenAPI JSON at `/openapi/json`
 - opt-in lint healthcheck at `/health/openapi-lint`
+- opt-in HTML lint dashboard at `/api-lint/dashboard`
 - JSON lint report output at `./artifacts/openapi-lint.json`
 - OpenAPI snapshot output at `./elysia-spectral-dev-app.open-api.json`
 
@@ -687,6 +724,7 @@ type SpectralPluginOptions = {
   /** Severity level at which the lint run is considered failed. Defaults to 'error'. */
   failOn?: SeverityThreshold
   healthcheck?: false | { path?: string }
+  dashboard?: false | { path?: string }
   output?: {
     /** Print findings to the console. Default: true. */
     console?: boolean
@@ -973,8 +1011,9 @@ Startup linting and route exposure solve different problems:
 
 - startup linting protects boot and local feedback loops
 - healthchecks expose operational state to external callers
+- the dashboard turns the same cached result into a human-readable page
 
-Separating them avoids a production surprise where enabling linting also adds a route you did not intend to expose.
+Separating them avoids a production surprise where enabling linting also adds a route you did not intend to expose. Each route is opt-in, so dashboards stay off by default and never leak into generated OpenAPI docs.
 
 ### Why repo-level rulesets are the default customization path
 
