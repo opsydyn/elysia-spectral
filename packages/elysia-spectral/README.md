@@ -386,9 +386,10 @@ What it surfaces:
 
 Keyboard shortcuts: `r` re-runs, `/` focuses the filter, `Enter`/`Space` toggles the focused severity chip.
 
-Three dark themes ship with the dashboard, selectable from the header dropdown and persisted per-browser via `localStorage`:
+Four dark themes ship with the dashboard, selectable from the header dropdown and persisted per-browser via `localStorage`:
 
 - **Astro Houston** (default) — purple / blue gradient
+- **Elysia** — pink on deep purple, sourced from the Scalar palette
 - **Tron Legacy** — cyan neon on near-black
 - **Detroit 808** — TR-808 amber, red, and yellow
 
@@ -1057,4 +1058,4 @@ Production-grade linting needs more than a pass/fail boolean. The runtime tracks
 
 ### Project status
 
-The package is actively developed toward a stable `v1`. Milestones 0.2 through 0.6 are complete. Ongoing work is tracked in [roadmap.md](../../roadmap.md).
+The package is published to npm and used in production. Ongoing work — additional rules, deeper Elysia integrations, and dashboard polish — is tracked in [roadmap.md](../../roadmap.md).
