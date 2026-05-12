@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.5.3](https://github.com/opsydyn/elysia-spectral/compare/v1.5.2...v1.5.3) (2026-05-12)
+
+
+### Bug Fixes
+
+* stabilize public API docs and smoke coverage ([d2373db](https://github.com/opsydyn/elysia-spectral/commit/d2373db7a40dc615b3d60c6c5e421ee848a1ffdf))
+
 ## [1.5.2](https://github.com/opsydyn/elysia-spectral/compare/v1.5.1...v1.5.2) (2026-05-12)
 
 
