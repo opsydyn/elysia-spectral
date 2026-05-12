@@ -1,9 +1,4 @@
 import type { RulesetDefinition } from '@stoplight/spectral-core';
-import spectralFunctions from '@stoplight/spectral-functions';
-import spectralRulesets from '@stoplight/spectral-rulesets';
-
-const { schema, truthy } = spectralFunctions;
-const { oas } = spectralRulesets;
 
 const operationSelector =
   '$.paths[*][get,put,post,delete,options,head,patch,trace]';
@@ -50,7 +45,7 @@ const checkProblemDetails = (
  * - rfc9457-problem-details at warn (error responses should use Problem Details)
  */
 export const strict: RulesetDefinition = {
-  extends: [[oas as unknown as RulesetDefinition, 'recommended']],
+  extends: [['spectral:oas', 'recommended']],
   rules: {
     'oas3-api-servers': 'error',
     'info-contact': 'warn',
@@ -59,7 +54,7 @@ export const strict: RulesetDefinition = {
         'Operations should define a summary for generated docs and clients.',
       severity: 'error',
       given: operationSelector,
-      then: { field: 'summary', function: truthy },
+      then: { field: 'summary', function: 'truthy' },
     },
     'elysia-operation-tags': {
       description:
@@ -68,7 +63,7 @@ export const strict: RulesetDefinition = {
       given: operationSelector,
       then: {
         field: 'tags',
-        function: schema,
+        function: 'schema',
         functionOptions: { schema: { type: 'array', minItems: 1 } },
       },
     },
@@ -84,4 +79,4 @@ export const strict: RulesetDefinition = {
       then: { function: checkProblemDetails },
     },
   },
-};
+} as unknown as RulesetDefinition;

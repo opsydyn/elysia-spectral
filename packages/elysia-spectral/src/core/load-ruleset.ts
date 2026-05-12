@@ -1,59 +1,15 @@
 import { access, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
-import type {
-  RulesetDefinition,
-  RulesetFunction,
-  RulesetFunctionWithValidator,
-} from '@stoplight/spectral-core';
-import spectralFunctions from '@stoplight/spectral-functions';
-import spectralRulesets from '@stoplight/spectral-rulesets';
+import type { RulesetDefinition } from '@stoplight/spectral-core';
 import YAML from 'yaml';
 import packageDefaultRuleset from '../rulesets/default-ruleset';
-
-const {
-  alphabetical,
-  casing,
-  defined,
-  enumeration,
-  falsy,
-  length,
-  or,
-  pattern,
-  schema,
-  truthy,
-  undefined: undefinedFunction,
-  unreferencedReusableObject,
-  xor,
-} = spectralFunctions;
-
-const { oas } = spectralRulesets;
-
-const functionMap = {
-  alphabetical,
-  casing,
-  defined,
-  enumeration,
-  falsy,
-  length,
-  or,
-  pattern,
-  schema,
-  truthy,
-  undefined: undefinedFunction,
-  unreferencedReusableObject,
-  xor,
-} as const;
-
-type AvailableFunctionMap = Record<
-  string,
-  // biome-ignore lint/suspicious/noExplicitAny: Spectral's generic function types use any
-  RulesetFunction<any, any> | RulesetFunctionWithValidator<any, any>
->;
-
-const extendsMap: Partial<Record<string, RulesetDefinition>> = {
-  'spectral:oas': oas as unknown as RulesetDefinition,
-};
+import { RulesetLoadError } from './ruleset-load-error';
+import {
+  type AvailableFunctionMap,
+  getBuiltInFunctionMap,
+  getExtendsMap,
+} from './stoplight-runtime';
 
 const autodiscoverRulesetFilenames = [
   'spectral.yaml',
@@ -113,17 +69,6 @@ export type LoadResolvedRulesetOptions = {
   defaultRuleset?: RulesetDefinition;
 };
 
-export class RulesetLoadError extends Error {
-  constructor(message: string, options?: { cause?: unknown }) {
-    super(message);
-    this.name = 'RulesetLoadError';
-
-    if (options?.cause !== undefined) {
-      (this as Error & { cause?: unknown }).cause = options.cause;
-    }
-  }
-}
-
 export const loadRuleset = async (
   input?: RulesetResolverInput,
   baseDirOrOptions: string | LoadResolvedRulesetOptions = process.cwd(),
@@ -146,7 +91,7 @@ export const loadResolvedRuleset = async (
     const loaded = await resolver(input, context);
     if (loaded) {
       const normalized = {
-        ruleset: normalizeRulesetDefinition(loaded.ruleset),
+        ruleset: await normalizeRulesetDefinition(loaded.ruleset),
       } as LoadedRuleset;
 
       if (loaded.source) {
@@ -158,7 +103,9 @@ export const loadResolvedRuleset = async (
   }
 
   if (input === undefined) {
-    return { ruleset: options.defaultRuleset };
+    return {
+      ruleset: await normalizeRulesetDefinition(options.defaultRuleset),
+    };
   }
 
   throw new RulesetLoadError('Ruleset input could not be resolved.');
@@ -235,7 +182,7 @@ const resolveInlineRuleset: RulesetResolver = async (input) => {
     return undefined;
   }
 
-  return { ruleset: normalizeRulesetDefinition(input) };
+  return { ruleset: input };
 };
 
 export const defaultRulesetResolvers: RulesetResolver[] = [
@@ -318,7 +265,7 @@ const loadYamlRuleset = async (
     );
   }
 
-  return normalizeRulesetDefinition(parsed);
+  return parsed as RulesetDefinition;
 };
 
 const loadModuleRuleset = async (
@@ -342,11 +289,11 @@ const loadModuleRuleset = async (
   }
 
   const availableFunctions = {
-    ...functionMap,
+    ...(await getBuiltInFunctionMap()),
     ...resolveModuleFunctions(imported),
   };
 
-  return normalizeRulesetDefinition(resolvedRuleset, availableFunctions);
+  return await normalizeRulesetDefinition(resolvedRuleset, availableFunctions);
 };
 
 const resolveModuleRulesetValue = (imported: unknown): unknown => {
@@ -395,22 +342,28 @@ const isModuleRulesetPath = (value: string): boolean =>
   value.endsWith('.mts') ||
   value.endsWith('.cts');
 
-const normalizeRulesetDefinition = (
+const normalizeRulesetDefinition = async (
   input: unknown,
-  availableFunctions: AvailableFunctionMap = functionMap,
-): RulesetDefinition => {
+  availableFunctions?: AvailableFunctionMap,
+): Promise<RulesetDefinition> => {
   if (!isRecord(input)) {
     throw new RulesetLoadError('Ruleset must be an object.');
   }
 
+  const resolvedAvailableFunctions =
+    availableFunctions ?? (await getBuiltInFunctionMap());
+
   const normalized: Record<string, unknown> = { ...input };
 
   if ('extends' in normalized) {
-    normalized.extends = normalizeExtends(normalized.extends);
+    normalized.extends = await normalizeExtends(normalized.extends);
   }
 
   if ('rules' in normalized) {
-    normalized.rules = normalizeRules(normalized.rules, availableFunctions);
+    normalized.rules = await normalizeRules(
+      normalized.rules,
+      resolvedAvailableFunctions,
+    );
   }
 
   return normalized as RulesetDefinition;
@@ -492,34 +445,38 @@ const toExtendsArray = (value: unknown): unknown[] => {
   return Array.isArray(value) ? [...value] : [value];
 };
 
-const normalizeExtends = (value: unknown): unknown => {
+const normalizeExtends = async (value: unknown): Promise<unknown> => {
   if (typeof value === 'string') {
-    return resolveExtendsEntry(value);
+    return await resolveExtendsEntry(value);
   }
 
   if (!Array.isArray(value)) {
     return value;
   }
 
-  return value.map((entry) => {
-    if (typeof entry === 'string') {
-      return resolveExtendsEntry(entry);
-    }
+  return await Promise.all(
+    value.map(async (entry) => {
+      if (typeof entry === 'string') {
+        return await resolveExtendsEntry(entry);
+      }
 
-    if (
-      Array.isArray(entry) &&
-      entry.length >= 1 &&
-      typeof entry[0] === 'string'
-    ) {
-      return [resolveExtendsEntry(entry[0]), entry[1]];
-    }
+      if (
+        Array.isArray(entry) &&
+        entry.length >= 1 &&
+        typeof entry[0] === 'string'
+      ) {
+        return [await resolveExtendsEntry(entry[0]), entry[1]];
+      }
 
-    return entry;
-  });
+      return entry;
+    }),
+  );
 };
 
-const resolveExtendsEntry = (value: string): RulesetDefinition => {
-  const resolved = extendsMap[value];
+const resolveExtendsEntry = async (
+  value: string,
+): Promise<RulesetDefinition> => {
+  const resolved = (await getExtendsMap())[value];
 
   if (!resolved) {
     throw new RulesetLoadError(
@@ -530,25 +487,27 @@ const resolveExtendsEntry = (value: string): RulesetDefinition => {
   return resolved;
 };
 
-const normalizeRules = (
+const normalizeRules = async (
   value: unknown,
   availableFunctions: AvailableFunctionMap,
-): unknown => {
+): Promise<unknown> => {
   if (!isRecord(value)) {
     return value;
   }
 
-  const entries = Object.entries(value).map(([ruleName, ruleValue]) => [
-    ruleName,
-    normalizeRule(ruleValue, availableFunctions),
-  ]);
+  const entries = await Promise.all(
+    Object.entries(value).map(async ([ruleName, ruleValue]) => [
+      ruleName,
+      await normalizeRule(ruleValue, availableFunctions),
+    ]),
+  );
   return Object.fromEntries(entries);
 };
 
-const normalizeRule = (
+const normalizeRule = async (
   value: unknown,
   availableFunctions: AvailableFunctionMap,
-): unknown => {
+): Promise<unknown> => {
   if (!isRecord(value)) {
     return value;
   }
@@ -556,27 +515,29 @@ const normalizeRule = (
   const normalized: Record<string, unknown> = { ...value };
 
   if ('then' in normalized) {
-    normalized.then = normalizeThen(normalized.then, availableFunctions);
+    normalized.then = await normalizeThen(normalized.then, availableFunctions);
   }
 
   return normalized;
 };
 
-const normalizeThen = (
+const normalizeThen = async (
   value: unknown,
   availableFunctions: AvailableFunctionMap,
-): unknown => {
+): Promise<unknown> => {
   if (Array.isArray(value)) {
-    return value.map((entry) => normalizeThenEntry(entry, availableFunctions));
+    return await Promise.all(
+      value.map((entry) => normalizeThenEntry(entry, availableFunctions)),
+    );
   }
 
-  return normalizeThenEntry(value, availableFunctions);
+  return await normalizeThenEntry(value, availableFunctions);
 };
 
-const normalizeThenEntry = (
+const normalizeThenEntry = async (
   value: unknown,
   availableFunctions: AvailableFunctionMap,
-): unknown => {
+): Promise<unknown> => {
   if (!isRecord(value)) {
     return value;
   }

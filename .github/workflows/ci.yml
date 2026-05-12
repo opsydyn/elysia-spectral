@@ -41,5 +41,57 @@ jobs:
       - name: Typecheck
         run: bun run typecheck
 
-      - name: Test
+  test-suite:
+    name: Full test suite (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - macos-latest
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install workspace dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Run full package test suite
         run: bun run test
+
+  packed-import-smoke:
+    name: Packed import smoke (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - macos-latest
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install workspace dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Run packed Bun/Node import smoke test
+        working-directory: packages/elysia-spectral
+        run: bun test ./test/integration/package-import-smoke.test.ts

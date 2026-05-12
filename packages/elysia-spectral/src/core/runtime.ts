@@ -2,7 +2,6 @@ import path from 'node:path';
 import type { AnyElysia } from 'elysia';
 import { resolveReporter } from '../output/console-reporter';
 import { createOutputSinks } from '../output/sinks';
-import { presets } from '../presets';
 import { PublicSpecProvider } from '../providers/public-spec-provider';
 import type {
   LintRunResult,
@@ -13,8 +12,6 @@ import type {
   SpectralPluginOptions,
   StartupLintMode,
 } from '../types';
-import { lintOpenApi } from './lint-openapi';
-import { loadResolvedRuleset } from './load-ruleset';
 import { enforceThreshold, shouldFail } from './thresholds';
 
 export const createOpenApiLintRuntime = (
@@ -52,10 +49,19 @@ export const createOpenApiLintRuntime = (
           const provider = new PublicSpecProvider(app, options.source);
           const spec = (await provider.getSpec()) as Record<string, unknown>;
 
+          const [{ lintOpenApi }, { loadResolvedRuleset }, presetsModule] =
+            await Promise.all([
+              import('./lint-openapi'),
+              import('./load-ruleset'),
+              options.preset ? import('../presets') : Promise.resolve(null),
+            ]);
+
+          const defaultRuleset = options.preset
+            ? presetsModule?.presets[options.preset]
+            : undefined;
+
           const loadedRuleset = await loadResolvedRuleset(options.ruleset, {
-            ...(options.preset
-              ? { defaultRuleset: presets[options.preset] }
-              : {}),
+            ...(defaultRuleset ? { defaultRuleset } : {}),
           });
 
           if (loadedRuleset.source?.autodiscovered) {

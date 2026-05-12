@@ -38,7 +38,7 @@ export class PublicSpecProvider extends BaseSpecProvider {
       throw new PublicSpecProviderError(
         [
           `Unable to load OpenAPI JSON from ${this.specPath} via ${sourceLabel}: received ${describeResponse(response)}${body ? ` with body ${body}.` : '.'}`,
-          `Fix: ensure @elysiajs/openapi is mounted and exposing "${this.specPath}", or update source.specPath to the correct OpenAPI JSON route.`,
+          `Fix: ensure an OpenAPI generator (for example @elysiajs/openapi) is installed and mounted so it exposes "${this.specPath}", or update source.specPath to the correct OpenAPI JSON route.`,
         ].join(' '),
       );
     } catch (error) {
@@ -53,7 +53,7 @@ export class PublicSpecProvider extends BaseSpecProvider {
       throw new PublicSpecProviderError(
         [
           `Unable to resolve OpenAPI JSON from ${this.specPath} via ${sourceLabel}.`,
-          'Fix: ensure the app can serve the configured OpenAPI JSON route, or set source.baseUrl if the document is only reachable over HTTP.',
+          'Fix: ensure the app mounts an OpenAPI generator (for example @elysiajs/openapi) or otherwise serves the configured OpenAPI JSON route, or set source.baseUrl if the document is only reachable over HTTP.',
         ].join(' '),
         { cause: error },
       );

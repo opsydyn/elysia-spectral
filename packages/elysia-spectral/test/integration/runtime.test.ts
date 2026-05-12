@@ -105,6 +105,48 @@ describe('createOpenApiLintRuntime', () => {
     }
   });
 
+  it('returns an actionable error when no OpenAPI generator is mounted', async () => {
+    const app = new Elysia().get('/users', () => [{ id: '1' }], {
+      response: {
+        200: t.Array(
+          t.Object({
+            id: t.String(),
+          }),
+        ),
+      },
+    });
+
+    const runtime = createOpenApiLintRuntime({
+      output: { console: false },
+    });
+
+    try {
+      await runtime.run(app);
+      throw new Error(
+        'Expected runtime.run to fail when no OpenAPI generator is mounted.',
+      );
+    } catch (error) {
+      expect(error).toBeInstanceOf(PublicSpecProviderError);
+      expect(runtime.status).toBe('failed');
+      expect(runtime.running).toBe(false);
+      expect(runtime.startedAt).not.toBeNull();
+      expect(runtime.completedAt).not.toBeNull();
+      expect(runtime.durationMs).not.toBeNull();
+      expect(runtime.latest).toBeNull();
+      expect(runtime.lastSuccess).toBeNull();
+      expect(runtime.lastFailure?.name).toBe('PublicSpecProviderError');
+
+      const message = error instanceof Error ? error.message : String(error);
+
+      expect(message).toContain(
+        'Unable to load OpenAPI JSON from /openapi/json',
+      );
+      expect(message).toContain(
+        'Fix: ensure an OpenAPI generator (for example @elysiajs/openapi) is installed and mounted so it exposes "/openapi/json", or update source.specPath to the correct OpenAPI JSON route.',
+      );
+    }
+  });
+
   it('writes the generated OpenAPI JSON snapshot relative to the consuming app root', async () => {
     const snapshotPath = './artifacts/test/openapi-snapshot.json';
     const resolvedSnapshotPath = path.resolve(process.cwd(), snapshotPath);
@@ -599,7 +641,7 @@ describe('createOpenApiLintRuntime', () => {
         'Unable to load OpenAPI JSON from /missing-openapi-json',
       );
       expect(message).toContain(
-        'Fix: ensure @elysiajs/openapi is mounted and exposing "/missing-openapi-json", or update source.specPath to the correct OpenAPI JSON route.',
+        'Fix: ensure an OpenAPI generator (for example @elysiajs/openapi) is installed and mounted so it exposes "/missing-openapi-json", or update source.specPath to the correct OpenAPI JSON route.',
       );
     }
   });
