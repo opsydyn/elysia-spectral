@@ -467,8 +467,87 @@ describe('createOpenApiLintRuntime', () => {
     const resolvedResult = capturedResult as LintRunResult;
 
     expect(resolvedResult).toBe(result);
+    expect(resolvedResult.durationMs).not.toBeNull();
+    expect(resolvedResult.failOn).toBe('error');
     expect(typeof resolvedSpec.openapi).toBe('string');
     expect(result.artifacts?.sarifReportPath).toBe('memory://capture.sarif');
+  });
+
+  it('writes a self-describing JSON report with duration, threshold, and artifact paths', async () => {
+    const outputDir = './artifacts/test/self-describing-report';
+    const reportPath = `${outputDir}/openapi-lint.json`;
+    const snapshotPath = `${outputDir}/openapi-snapshot.json`;
+    const brunoPath = `${outputDir}/bruno.yml`;
+    const resolvedOutputDir = path.resolve(process.cwd(), outputDir);
+    const resolvedReportPath = path.resolve(process.cwd(), reportPath);
+
+    await rm(resolvedOutputDir, {
+      recursive: true,
+      force: true,
+    });
+
+    const app = new Elysia()
+      .use(
+        openapi({
+          documentation: {
+            info: {
+              title: 'Runtime JSON Report API',
+              version: '1.0.0',
+            },
+            tags: [{ name: 'Users', description: 'User operations' }],
+          },
+        }),
+      )
+      .get('/users', () => [{ id: '1' }], {
+        response: {
+          200: t.Array(
+            t.Object({
+              id: t.String(),
+            }),
+          ),
+        },
+        detail: {
+          summary: 'List users',
+          description: 'Returns users for JSON report testing.',
+          operationId: 'listUsersJsonReport',
+          tags: ['Users'],
+        },
+      });
+
+    const runtime = createOpenApiLintRuntime({
+      output: {
+        console: false,
+        jsonReportPath: reportPath,
+        specSnapshotPath: snapshotPath,
+        brunoCollectionPath: brunoPath,
+      },
+      failOn: 'error',
+    });
+
+    try {
+      const result = await runtime.run(app);
+      const report = JSON.parse(
+        await readFile(resolvedReportPath, 'utf8'),
+      ) as LintRunResult;
+
+      expect(report.ok).toBe(true);
+      expect(report.failOn).toBe('error');
+      expect(report.durationMs).not.toBeNull();
+      expect(report.durationMs).toBeGreaterThanOrEqual(0);
+      expect(report.durationMs).toBe(result.durationMs);
+      expect(report.artifacts?.jsonReportPath).toBe(reportPath);
+      expect(report.artifacts?.specSnapshotPath).toBe(snapshotPath);
+      expect(report.artifacts?.brunoCollectionPath).toBe(brunoPath);
+
+      expect(result.artifacts?.jsonReportPath).toBe(reportPath);
+      expect(result.artifacts?.specSnapshotPath).toBe(snapshotPath);
+      expect(result.artifacts?.brunoCollectionPath).toBe(brunoPath);
+    } finally {
+      await rm(resolvedOutputDir, {
+        recursive: true,
+        force: true,
+      });
+    }
   });
 
   it('warns and continues when artifact writes fail in warn mode', async () => {

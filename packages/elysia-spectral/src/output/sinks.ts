@@ -1,3 +1,4 @@
+import path from 'node:path';
 import type {
   LintRunResult,
   OpenApiLintArtifacts,
@@ -17,10 +18,18 @@ import { writeSarifReport } from './sarif-reporter';
 type BuiltInSink = {
   name: string;
   kind: 'artifact' | 'report' | 'custom';
+  phase: 'pre-finalize' | 'post-finalize';
   write: (
     result: LintRunResult,
     context: OpenApiLintSinkContext,
   ) => Promise<undefined | Partial<OpenApiLintArtifacts>>;
+};
+
+const relativiseArtifactPath = (artifactPath: string): string => {
+  const resolvedPath = path.resolve(process.cwd(), artifactPath);
+  const relativePath = path.relative(process.cwd(), resolvedPath);
+
+  return relativePath.startsWith('.') ? relativePath : `./${relativePath}`;
 };
 
 export const createOutputSinks = (
@@ -37,6 +46,7 @@ export const createOutputSinks = (
     sinks.push({
       name: 'spec snapshot',
       kind: 'artifact',
+      phase: 'pre-finalize',
       async write(_result, context) {
         const snapshotTarget =
           configuredSpecSnapshotPath === true
@@ -57,30 +67,11 @@ export const createOutputSinks = (
     });
   }
 
-  if (configuredJsonReportPath) {
-    sinks.push({
-      name: 'JSON report',
-      kind: 'artifact',
-      async write(result) {
-        const writtenJsonReportPath = await writeJsonReport(
-          configuredJsonReportPath,
-          result,
-          options.output?.pretty !== false,
-        );
-
-        reporter.artifact(
-          `OpenAPI lint wrote JSON report to ${writtenJsonReportPath}.`,
-        );
-
-        return { jsonReportPath: writtenJsonReportPath };
-      },
-    });
-  }
-
   if (configuredJunitReportPath) {
     sinks.push({
       name: 'JUnit report',
       kind: 'artifact',
+      phase: 'pre-finalize',
       async write(result) {
         const writtenJunitReportPath = await writeJunitReport(
           configuredJunitReportPath,
@@ -102,6 +93,7 @@ export const createOutputSinks = (
     sinks.push({
       name: 'Bruno collection',
       kind: 'artifact',
+      phase: 'pre-finalize',
       async write(_result, context) {
         const writtenPath = await writeBrunoCollection(
           configuredBrunoCollectionPath,
@@ -121,6 +113,7 @@ export const createOutputSinks = (
     sinks.push({
       name: 'SARIF report',
       kind: 'artifact',
+      phase: 'pre-finalize',
       async write(result) {
         const writtenSarifReportPath = await writeSarifReport(
           configuredSarifReportPath,
@@ -141,6 +134,7 @@ export const createOutputSinks = (
     sinks.push({
       name: sink.name,
       kind: 'custom',
+      phase: 'post-finalize',
       write: async (result, context) =>
         (await Promise.resolve(sink.write(result, context))) as
           | Partial<OpenApiLintArtifacts>
@@ -148,10 +142,40 @@ export const createOutputSinks = (
     });
   }
 
+  if (configuredJsonReportPath) {
+    sinks.push({
+      name: 'JSON report',
+      kind: 'artifact',
+      phase: 'post-finalize',
+      async write(result) {
+        const reportResult: LintRunResult = {
+          ...result,
+          artifacts: {
+            ...(result.artifacts ?? {}),
+            jsonReportPath: relativiseArtifactPath(configuredJsonReportPath),
+          },
+        };
+
+        const writtenJsonReportPath = await writeJsonReport(
+          configuredJsonReportPath,
+          reportResult,
+          options.output?.pretty !== false,
+        );
+
+        reporter.artifact(
+          `OpenAPI lint wrote JSON report to ${writtenJsonReportPath}.`,
+        );
+
+        return { jsonReportPath: writtenJsonReportPath };
+      },
+    });
+  }
+
   if (options.output?.console !== false) {
     sinks.push({
       name: 'console',
       kind: 'report',
+      phase: 'post-finalize',
       async write(result) {
         reportToConsole(result, reporter);
         return undefined;

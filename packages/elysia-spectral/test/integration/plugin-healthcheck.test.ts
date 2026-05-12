@@ -113,6 +113,8 @@ describe('spectralPlugin healthcheck', () => {
       expect(response.status).toBe(200);
       expect(body.ok).toBe(true);
       expect(body.cached).toBe(true);
+      expect(body.result.failOn).toBe('error');
+      expect(body.result.durationMs).toBeGreaterThanOrEqual(0);
       expect(body.result.summary.total).toBe(0);
     } finally {
       await app.stop();

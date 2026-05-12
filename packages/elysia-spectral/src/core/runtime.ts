@@ -83,16 +83,31 @@ export const createOpenApiLintRuntime = (
           result.source = source;
           result.failOn = options.failOn ?? 'error';
           result.ok = !shouldFail(result, result.failOn);
+
+          const sinks = createOutputSinks(options);
+          const { preFinalizeSinks, postFinalizeSinks } =
+            partitionOutputSinks(sinks);
+
           await writeOutputSinks(
+            preFinalizeSinks,
             result,
             spec,
-            options,
+            reporter,
+            artifactWriteFailureMode,
+          );
+
+          finalizeRuntimeRun(runtime, startedAt);
+          result.durationMs = runtime.durationMs;
+
+          await writeOutputSinks(
+            postFinalizeSinks,
+            result,
+            spec,
+            reporter,
             artifactWriteFailureMode,
           );
 
           runtime.latest = result;
-          finalizeRuntimeRun(runtime, startedAt);
-          result.durationMs = runtime.durationMs;
 
           reporter.complete('OpenAPI lint completed.');
           enforceThreshold(result, options.failOn ?? 'error');
@@ -165,14 +180,12 @@ const handleArtifactWriteFailure = (
 };
 
 const writeOutputSinks = async (
+  sinks: OutputSinks,
   result: LintRunResult,
   spec: Record<string, unknown>,
-  options: SpectralPluginOptions,
+  reporter: ReturnType<typeof resolveReporter>,
   artifactWriteFailureMode: 'warn' | 'error',
 ): Promise<void> => {
-  const reporter = resolveReporter(options.logger);
-  const sinks = createOutputSinks(options);
-
   for (const sink of sinks) {
     try {
       const artifacts = await sink.write(result, {
@@ -197,6 +210,29 @@ const writeOutputSinks = async (
       throw error;
     }
   }
+};
+
+type OutputSinks = ReturnType<typeof createOutputSinks>;
+
+const partitionOutputSinks = (
+  sinks: OutputSinks,
+): {
+  preFinalizeSinks: OutputSinks;
+  postFinalizeSinks: OutputSinks;
+} => {
+  const preFinalizeSinks: OutputSinks = [];
+  const postFinalizeSinks: OutputSinks = [];
+
+  for (const sink of sinks) {
+    if (sink.phase === 'post-finalize') {
+      postFinalizeSinks.push(sink);
+      continue;
+    }
+
+    preFinalizeSinks.push(sink);
+  }
+
+  return { preFinalizeSinks, postFinalizeSinks };
 };
 
 const relativiseArtifacts = (

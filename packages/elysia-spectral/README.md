@@ -58,6 +58,7 @@ Current package scope:
 - resolver pipeline for advanced ruleset loading
 - console output
 - JSON report output
+- self-describing JSON report metadata (`failOn`, `durationMs`, relative artifact paths)
 - JUnit report output
 - SARIF report output
 - OpenAPI snapshot output
@@ -846,6 +847,10 @@ type LintRunResult = {
   generatedAt: string
   /** Where the lint run was triggered from. */
   source: LintRunSource
+  /** The configured threshold that produced this result. */
+  failOn: SeverityThreshold
+  /** Duration of the completed lint run in milliseconds. */
+  durationMs: number | null
   summary: {
     error: number
     warn: number
@@ -1008,6 +1013,8 @@ Example successful response:
     "ok": true,
     "generatedAt": "2026-04-06T12:00:00.000Z",
     "source": "startup",
+    "failOn": "error",
+    "durationMs": 42,
     "summary": {
       "error": 0,
       "warn": 0,
@@ -1048,6 +1055,8 @@ The current output model has two layers:
 - sink abstractions under `output.sinks`
 
 The convenience options compile down to built-in sinks so the current API stays simple while the internal output model becomes extensible.
+
+Persisted JSON reports are self-describing: they embed the configured `failOn` threshold, the completed `durationMs`, and relative artifact paths so the same report shape is portable across CI runners and developer machines.
 
 ## Explanation
 
@@ -1096,4 +1105,4 @@ Production-grade linting needs more than a pass/fail boolean. The runtime tracks
 
 ### Project status
 
-The package is published to npm and used in production. Ongoing work — additional rules, deeper Elysia integrations, and dashboard polish — is tracked in [roadmap.md](../../roadmap.md).
+The package is published to npm and used in production. The current pre-`1.0` feature roadmap is functionally complete: startup/runtime flows, presets, output sinks, CI workflows, dashboard support, and self-describing result artifacts are all shipped. Remaining work is primarily `1.0` stabilization — public API/package boundaries, backwards-compatibility audit, and migration notes — tracked in [roadmap.md](../../roadmap.md).

@@ -14,13 +14,24 @@ implemented today:
 - threshold-based failure
 - startup modes: `enforce`, `report`, and `off`
 - opt-in healthcheck endpoint for cached and fresh runs
+- opt-in HTML dashboard endpoint
 - repo-level ruleset autodiscovery
 - local YAML rulesets
 - local JS and TS ruleset modules
 - in-memory rulesets
 - custom function exports from module rulesets
+- first-party governance presets: `recommended`, `server`, `strict`
+- formal ruleset resolver pipeline
+- sink abstractions with built-in and custom output sinks
 - console output with package-owned formatting
 - JSON report output
+- self-describing JSON report metadata:
+  - `failOn`
+  - `durationMs`
+  - relative artifact paths
+- JUnit report output
+- SARIF report output
+- Bruno collection output
 - OpenAPI snapshot output
 - artifact write failure policy: warn or error
 - reusable runtime for CI and tests
@@ -34,14 +45,14 @@ implemented today:
   - `lastFailure`
 - actionable spec-resolution errors
 - single-flight run deduplication
+- lazy Stoplight loading that avoids import-time ruleset initialisation
+- packed Bun/Node import smoke coverage and fresh-runner CI matrix validation
 
-remaining limitations are now more architectural than functional:
+remaining work is now primarily about `1.0` stabilization rather than missing product features:
 
-- output handling is still convenience flags rather than sink abstractions
-- ruleset resolution is flexible but not yet a formal resolver pipeline
-- first-party policy presets are still light
-- CI outputs are still oriented around JSON artifacts rather than broader machine-consumable formats
-- the codebase is still one package even though core/plugin/preset responsibilities are becoming clearer
+- lock stable public API and package boundaries
+- audit backwards compatibility and safe production defaults
+- publish migration notes for the `1.0` transition
 
 ## target state
 
@@ -69,7 +80,7 @@ the target `v1` should look like this:
 
 goal: make the plugin safe and predictable enough for wider internal use.
 
-status: mostly complete
+status: complete
 
 completed:
 
@@ -82,7 +93,7 @@ completed:
 
 remaining:
 
-- no major remaining implementation work in `0.2`
+- none
 
 acceptance status:
 
@@ -95,7 +106,7 @@ acceptance status:
 
 goal: make the runtime operationally credible.
 
-status: mostly complete
+status: complete
 
 completed:
 
@@ -108,9 +119,7 @@ completed:
 
 remaining:
 
-- decide whether the healthcheck should expose richer runtime metadata directly
-- decide whether run source metadata should be tracked explicitly, for example `startup`, `fresh-healthcheck`, or `manual`
-- optional final console polish to unify the `report` continuation line even further with the full report block
+- no blocking implementation work remains in `0.3`; richer healthcheck metadata and finer-grained run-source labels are optional future enhancements.
 
 acceptance status:
 
@@ -163,7 +172,7 @@ completed:
 
 goal: make CI and downstream tooling first-class.
 
-status: in progress
+status: complete
 
 completed:
 
@@ -180,42 +189,26 @@ completed (late additions):
 - documented downstream codegen chaining into `openapi-ts` with drift detection
 - API surface audit: removed `normalizeFindings`, `isEnabled`, `exceedsThreshold`, `SpecProvider` from public exports
 - `LintRunResult.ok` now reflects configured `failOn` threshold rather than hardcoded `error === 0`
-
-status: complete
+- fresh-runner CI coverage for the full test suite and packed import smoke path on Ubuntu and macOS
 
 ### milestone 0.7
 
 goal: make `LintRunResult` self-describing for production teams and CI consumers.
 
-status: planned
+status: complete
 
-background:
+completed:
 
-the JSON report artifact (`openapi-lint.json`) currently omits information that a team needs to interpret a result without re-running lint or consulting source code. three gaps were identified after testing the artifact in CI:
-
-- `durationMs` is tracked by the runtime but never written to `LintRunResult`
-- artifact paths in `result.artifacts` are absolute local paths, which are meaningless in shared CI artifacts
-- the configured `failOn` threshold is not embedded in the result, so `ok: true` is ambiguous without knowing the policy that produced it
-
-planned scope:
-
-- add `durationMs: number` to `LintRunResult` — stamped from the runtime after each run
-- add `failOn: SeverityThreshold` to `LintRunResult` — stamped alongside `ok` so the policy is always embedded in the artifact
-- relativise all artifact paths in `result.artifacts` to `process.cwd()` — console output keeps absolute paths for display, the serialised artifact gets portable relative paths
-
-implementation:
-
-1. `src/types.ts` — add `durationMs` and `failOn` to `LintRunResult`
-2. `src/core/runtime.ts` — stamp both fields after `lintOpenApi` returns, at the same point `result.ok` is set
-3. `src/output/sinks.ts` — relativise returned artifact paths before merging into `result.artifacts`
-4. update unit test fixtures that construct `LintRunResult` directly
-5. patch version bump with changelog note: artifact paths are now relative (breaking for callers that used the absolute path directly)
+- `LintRunResult` includes `failOn` and `durationMs`
+- persisted JSON reports serialise the completed result model after runtime timing is stamped
+- artifact paths in `result.artifacts` are relative to `process.cwd()` in serialised results
+- tests cover self-describing JSON report fields and portable artifact paths
 
 acceptance criteria:
 
-- `openapi-lint.json` includes `durationMs`, `failOn`, and relative artifact paths
-- two reports from different machines are structurally identical for the same run
-- existing tests pass without modification beyond fixture updates
+- `openapi-lint.json` includes `durationMs`, `failOn`, and relative artifact paths: complete
+- reports generated on different machines retain the same portable shape and relative path semantics: complete
+- existing tests pass with the updated fixture/result model: complete
 
 ### milestone 1.0
 
@@ -239,11 +232,9 @@ planned scope:
 
 ## recommended implementation order
 
-1. finish the remaining runtime polish in `0.3`
-2. formalize extensibility seams in `0.4`
-3. strengthen first-party policy value in `0.5`
-4. formalize CI and downstream workflows in `0.6`
-5. stabilize architecture and packaging for `1.0`
+1. stabilize public API surface and package boundaries for `1.0`
+2. audit backwards compatibility and safe production defaults
+3. publish migration notes from pre-`1.0` configuration to `v1`
 
 ## explicit non-goals
 
