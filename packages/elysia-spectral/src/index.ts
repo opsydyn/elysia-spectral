@@ -26,7 +26,24 @@ export {
 } from './core/thresholds';
 export { spectralPlugin } from './plugin';
 export { presets, recommended, server, strict } from './presets';
-export * from './types';
+export type {
+  ArtifactWriteFailureMode,
+  LintFinding,
+  LintRunResult,
+  LintRunSource,
+  LintSeverity,
+  OpenApiLintArtifacts,
+  OpenApiLintRuntime,
+  OpenApiLintRuntimeFailure,
+  OpenApiLintRuntimeStatus,
+  OpenApiLintSink,
+  OpenApiLintSinkContext,
+  PresetName,
+  SeverityThreshold,
+  SpectralLogger,
+  SpectralPluginOptions,
+  StartupLintMode,
+} from './types';
 
 export const loadRuleset = async (
   input?: RulesetResolverInput,

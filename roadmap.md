@@ -216,6 +216,18 @@ goal: stabilize the architecture and package boundaries.
 
 status: future
 
+current audit notes: `docs/1.0-api-stabilization-audit.md`
+
+current migration notes: `docs/1.0-migration-notes.md`
+
+progress so far:
+
+- root type exports are curated instead of wildcard re-exports
+- root and `./core` support tiers are documented in the package README
+- packed import smoke asserts the approved runtime export surfaces for `.` and `./core`
+- legacy/default startup semantics are documented and tested (`startup.mode`, `enabled`, `failOn`, artifact write policy)
+- consumer migration notes from early `v0.1` / pre-`1.0` usage to `v1` are published
+
 planned scope:
 
 - split the codebase into clearer layers if justified:
@@ -228,13 +240,13 @@ planned scope:
   - result model
   - sink and resolver extension points
 - audit defaults for backwards compatibility and safe production behavior
-- publish migration notes from `v0.1` style configuration to `v1`
+- keep migration notes current as the final `1.0` release is prepared
 
 ## recommended implementation order
 
 1. stabilize public API surface and package boundaries for `1.0`
 2. audit backwards compatibility and safe production defaults
-3. publish migration notes from pre-`1.0` configuration to `v1`
+3. keep the migration guide aligned with the final `1.0` release notes
 
 ## explicit non-goals
 
@@ -252,4 +264,4 @@ the next high-leverage implementation tasks are now:
 
 1. stabilize public API surface and package boundaries for `1.0`
 2. audit backwards compatibility and safe production defaults before `1.0`
-3. publish migration notes from pre-1.0 configuration to `v1`
+3. keep the migration guide aligned with the final `1.0` release notes

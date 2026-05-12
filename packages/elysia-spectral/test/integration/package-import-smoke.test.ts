@@ -1,8 +1,15 @@
 import { afterAll, describe, expect, it } from 'bun:test';
 import { execFile } from 'node:child_process';
-import { mkdir, mkdtemp, rename, rm, writeFile } from 'node:fs/promises';
+import {
+  mkdir,
+  mkdtemp,
+  readdir,
+  rename,
+  rm,
+  writeFile,
+} from 'node:fs/promises';
 import path from 'node:path';
-import { pathToFileURL } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { promisify } from 'node:util';
 import fc from 'fast-check';
 import type { SpectralPluginOptions } from '../../src/types';
@@ -11,13 +18,112 @@ type RootModule = typeof import('../../src');
 
 type PackedConsumerFixture = {
   consumerDir: string;
+  env: NodeJS.ProcessEnv;
   rootModule: RootModule;
   cleanup: () => Promise<void>;
 };
 
 const execFileAsync = promisify(execFile);
 const maxBuffer = 10 * 1024 * 1024;
-const packageDir = process.cwd();
+const packageDir = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  '..',
+  '..',
+);
+const versionDirPattern = /^v?(\d+)\.(\d+)\.(\d+)$/u;
+
+const compareVersionNamesDescending = (left: string, right: string): number => {
+  const leftMatch = versionDirPattern.exec(left);
+  const rightMatch = versionDirPattern.exec(right);
+
+  if (!leftMatch || !rightMatch) {
+    return right.localeCompare(left, undefined, { numeric: true });
+  }
+
+  const leftParts = leftMatch.slice(1).map((part) => Number(part));
+  const rightParts = rightMatch.slice(1).map((part) => Number(part));
+
+  for (let index = 0; index < leftParts.length; index += 1) {
+    const leftPart = leftParts[index] ?? 0;
+    const rightPart = rightParts[index] ?? 0;
+    const delta = rightPart - leftPart;
+
+    if (delta !== 0) {
+      return delta;
+    }
+  }
+
+  return 0;
+};
+
+const uniqueStrings = (values: Iterable<string | undefined>): string[] => {
+  const seen = new Set<string>();
+  const result: string[] = [];
+
+  for (const value of values) {
+    if (!value || seen.has(value)) {
+      continue;
+    }
+
+    seen.add(value);
+    result.push(value);
+  }
+
+  return result;
+};
+
+const getLatestNvmBinDir = async (): Promise<string | undefined> => {
+  const homeDir = process.env.HOME;
+
+  if (!homeDir) {
+    return undefined;
+  }
+
+  const versionsDir = path.join(homeDir, '.nvm', 'versions', 'node');
+
+  try {
+    const entries = await readdir(versionsDir, { withFileTypes: true });
+    const versionNames = entries
+      .filter(
+        (entry) => entry.isDirectory() && versionDirPattern.test(entry.name),
+      )
+      .map((entry) => entry.name)
+      .sort(compareVersionNamesDescending);
+
+    const latestVersion = versionNames.at(0);
+
+    return latestVersion
+      ? path.join(versionsDir, latestVersion, 'bin')
+      : undefined;
+  } catch {
+    return undefined;
+  }
+};
+
+const createSmokeTestEnv = async (): Promise<NodeJS.ProcessEnv> => {
+  const homeDir = process.env.HOME;
+  const latestNvmBinDir = await getLatestNvmBinDir();
+  const existingPathEntries = (process.env.PATH ?? '')
+    .split(path.delimiter)
+    .filter((entry) => entry.length > 0);
+
+  const pathEntries = uniqueStrings([
+    process.env.NVM_BIN,
+    latestNvmBinDir,
+    homeDir ? path.join(homeDir, '.bun', 'bin') : undefined,
+    path.dirname(process.execPath),
+    '/usr/local/bin',
+    '/opt/homebrew/bin',
+    '/usr/bin',
+    '/bin',
+    ...existingPathEntries,
+  ]);
+
+  return {
+    ...process.env,
+    PATH: pathEntries.join(path.delimiter),
+  };
+};
 
 const routePathArb = fc
   .array(
@@ -165,14 +271,17 @@ const setupPackedConsumerFixture = async (): Promise<PackedConsumerFixture> => {
   const unpackDir = path.join(tempDir, 'unpack');
   const consumerDir = path.join(tempDir, 'consumer');
   const scopeDir = path.join(consumerDir, 'node_modules', '@opsydyn');
+  const env = await createSmokeTestEnv();
 
   await execFileAsync('bun', ['run', 'build'], {
     cwd: packageDir,
+    env,
     maxBuffer,
   });
 
   const { stdout } = await execFileAsync('npm', ['pack', '--json'], {
     cwd: packageDir,
+    env,
     maxBuffer,
   });
   const packEntries = JSON.parse(stdout) as Array<{ filename: string }>;
@@ -195,6 +304,7 @@ const setupPackedConsumerFixture = async (): Promise<PackedConsumerFixture> => {
 
   await execFileAsync('tar', ['-xzf', tarballPath, '-C', unpackDir], {
     cwd: packageDir,
+    env,
     maxBuffer,
   });
   await rename(
@@ -209,6 +319,7 @@ const setupPackedConsumerFixture = async (): Promise<PackedConsumerFixture> => {
 
   return {
     consumerDir,
+    env,
     rootModule,
     cleanup: async () => {
       await rm(tempDir, { recursive: true, force: true });
@@ -241,16 +352,27 @@ const lastNonEmptyLine = (value: string): string => {
 };
 
 const packageImportScript = [
-  "import('@opsydyn/elysia-spectral')",
-  '  .then((module) => {',
+  "Promise.all([import('@opsydyn/elysia-spectral'), import('@opsydyn/elysia-spectral/core')])",
+  '  .then(([module, coreModule]) => {',
   "    const runtime = module.createOpenApiLintRuntime({ startup: { mode: 'off' } });",
   '    const plugin = module.spectralPlugin({ enabled: false });',
   '    console.log(JSON.stringify({',
+  '      rootExports: Object.keys(module).sort(),',
+  '      coreExports: Object.keys(coreModule).sort(),',
   '      spectralPlugin: typeof module.spectralPlugin,',
   '      createOpenApiLintRuntime: typeof module.createOpenApiLintRuntime,',
   '      loadRuleset: typeof module.loadRuleset,',
+  '      loadResolvedRuleset: typeof module.loadResolvedRuleset,',
   '      lintOpenApi: typeof module.lintOpenApi,',
+  '      shouldFail: typeof module.shouldFail,',
+  '      enforceThreshold: typeof module.enforceThreshold,',
+  '      presets: typeof module.presets,',
   '      strict: typeof module.strict,',
+  '      coreLoadResolvedRuleset: typeof coreModule.loadResolvedRuleset,',
+  '      coreShouldFail: typeof coreModule.shouldFail,',
+  '      coreEnforceThreshold: typeof coreModule.enforceThreshold,',
+  '      coreDefaultRulesetResolversIsArray: Array.isArray(coreModule.defaultRulesetResolvers),',
+  '      coreDefaultRulesetResolversLength: Array.isArray(coreModule.defaultRulesetResolvers) ? coreModule.defaultRulesetResolvers.length : -1,',
   '      runtimeStatus: runtime.status,',
   '      runtimeRun: typeof runtime.run,',
   '      runtimeLatest: runtime.latest,',
@@ -263,25 +385,68 @@ const packageImportScript = [
   '  });',
 ].join('\n');
 
+const expectedRootExports = [
+  'OpenApiLintArtifactWriteError',
+  'OpenApiLintThresholdError',
+  'RulesetLoadError',
+  'createOpenApiLintRuntime',
+  'enforceThreshold',
+  'lintOpenApi',
+  'loadResolvedRuleset',
+  'loadRuleset',
+  'presets',
+  'recommended',
+  'server',
+  'shouldFail',
+  'spectralPlugin',
+  'strict',
+] as const;
+
+const expectedCoreExports = [
+  'OpenApiLintArtifactWriteError',
+  'OpenApiLintThresholdError',
+  'RulesetLoadError',
+  'createOpenApiLintRuntime',
+  'defaultRulesetResolvers',
+  'enforceThreshold',
+  'lintOpenApi',
+  'loadResolvedRuleset',
+  'loadRuleset',
+  'shouldFail',
+] as const;
+
 describe('packed package import smoke', () => {
   it('imports the packed package under Bun and Node without triggering a lint run', async () => {
-    const { consumerDir } = await fixturePromise;
+    const { consumerDir, env } = await fixturePromise;
 
     const bunRun = await execFileAsync('bun', ['-e', packageImportScript], {
       cwd: consumerDir,
+      env,
       maxBuffer,
     });
     const nodeRun = await execFileAsync('node', ['-e', packageImportScript], {
       cwd: consumerDir,
+      env,
       maxBuffer,
     });
 
     const bunPayload = JSON.parse(lastNonEmptyLine(bunRun.stdout)) as {
+      rootExports: string[];
+      coreExports: string[];
       spectralPlugin: string;
       createOpenApiLintRuntime: string;
       loadRuleset: string;
+      loadResolvedRuleset: string;
       lintOpenApi: string;
+      shouldFail: string;
+      enforceThreshold: string;
+      presets: string;
       strict: string;
+      coreLoadResolvedRuleset: string;
+      coreShouldFail: string;
+      coreEnforceThreshold: string;
+      coreDefaultRulesetResolversIsArray: boolean;
+      coreDefaultRulesetResolversLength: number;
       runtimeStatus: string;
       runtimeRun: string;
       runtimeLatest: unknown;
@@ -292,11 +457,22 @@ describe('packed package import smoke', () => {
     ) as typeof bunPayload;
 
     for (const payload of [bunPayload, nodePayload]) {
+      expect(payload.rootExports).toEqual([...expectedRootExports]);
+      expect(payload.coreExports).toEqual([...expectedCoreExports]);
       expect(payload.spectralPlugin).toBe('function');
       expect(payload.createOpenApiLintRuntime).toBe('function');
       expect(payload.loadRuleset).toBe('function');
+      expect(payload.loadResolvedRuleset).toBe('function');
       expect(payload.lintOpenApi).toBe('function');
+      expect(payload.shouldFail).toBe('function');
+      expect(payload.enforceThreshold).toBe('function');
+      expect(payload.presets).toBe('object');
       expect(payload.strict).toBe('object');
+      expect(payload.coreLoadResolvedRuleset).toBe('function');
+      expect(payload.coreShouldFail).toBe('function');
+      expect(payload.coreEnforceThreshold).toBe('function');
+      expect(payload.coreDefaultRulesetResolversIsArray).toBe(true);
+      expect(payload.coreDefaultRulesetResolversLength).toBeGreaterThan(0);
       expect(payload.runtimeStatus).toBe('idle');
       expect(payload.runtimeRun).toBe('function');
       expect(payload.runtimeLatest).toBeNull();
@@ -321,7 +497,11 @@ describe('packed package import smoke', () => {
         expect(typeof runtime.run).toBe('function');
         expect(Boolean(plugin)).toBe(true);
         expect(typeof rootModule.loadRuleset).toBe('function');
+        expect(typeof rootModule.loadResolvedRuleset).toBe('function');
         expect(typeof rootModule.lintOpenApi).toBe('function');
+        expect(typeof rootModule.shouldFail).toBe('function');
+        expect(typeof rootModule.enforceThreshold).toBe('function');
+        expect(rootModule.presets).toBeDefined();
         expect(rootModule.recommended).toBeDefined();
         expect(rootModule.server).toBeDefined();
         expect(rootModule.strict).toBeDefined();

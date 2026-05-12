@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'bun:test';
 import fixtureSpec from '../../fixtures/openapi/minimal.json';
+import { defaultRulesetResolvers } from '../../src/core';
 import { lintOpenApi } from '../../src/core/lint-openapi';
 import { loadResolvedRuleset, loadRuleset } from '../../src/core/load-ruleset';
 
@@ -184,6 +185,56 @@ describe('loadRuleset', () => {
         (finding) => finding.code === 'custom-resolver-summary',
       ),
     ).toBe(true);
+  });
+
+  it('supports extending defaultRulesetResolvers while preserving built-in fallback behavior', async () => {
+    const customRuleset = {
+      extends: ['spectral:oas'],
+      rules: {
+        'custom-resolver-summary': {
+          description: 'Require operation summaries through a custom resolver.',
+          message: 'Operation summary is required by the custom resolver.',
+          severity: 'warn',
+          given: '$.paths[*][get,put,post,delete,options,head,patch,trace]',
+          then: {
+            field: 'summary',
+            function: 'truthy',
+          },
+        },
+      },
+    };
+
+    const resolvers = [
+      async (input: string | Record<string, unknown> | undefined) =>
+        input === 'virtual://ruleset' ? { ruleset: customRuleset } : undefined,
+      ...defaultRulesetResolvers,
+    ];
+
+    const virtualLoaded = await loadResolvedRuleset('virtual://ruleset', {
+      baseDir: './fixtures/rulesets/autodiscover-yaml',
+      resolvers,
+    });
+    const virtualResult = await lintOpenApi(
+      fixtureSpec as Record<string, unknown>,
+      virtualLoaded.ruleset,
+    );
+
+    expect(
+      virtualResult.findings.some(
+        (finding) => finding.code === 'custom-resolver-summary',
+      ),
+    ).toBe(true);
+
+    const autodiscoveredLoaded = await loadResolvedRuleset(undefined, {
+      baseDir: './fixtures/rulesets/autodiscover-yaml',
+      resolvers,
+    });
+
+    expect(autodiscoveredLoaded.source).toEqual({
+      path: './spectral.yaml',
+      autodiscovered: true,
+      mergedWithDefault: true,
+    });
   });
 
   it('merges object-form severity override of an extends-inherited rule without rejecting it', async () => {

@@ -105,6 +105,42 @@ describe('createOpenApiLintRuntime', () => {
     }
   });
 
+  it('defaults failOn to error so warning-only findings remain non-fatal', async () => {
+    const app = new Elysia()
+      .use(
+        openapi({
+          documentation: {
+            info: {
+              title: 'Runtime Default Threshold API',
+              version: '1.0.0',
+            },
+          },
+        }),
+      )
+      .get('/users', () => [{ id: '1' }], {
+        response: {
+          200: t.Array(
+            t.Object({
+              id: t.String(),
+            }),
+          ),
+        },
+      });
+
+    const runtime = createOpenApiLintRuntime({
+      output: { console: false },
+    });
+
+    const result = await runtime.run(app);
+
+    expect(result.failOn).toBe('error');
+    expect(result.summary.warn).toBeGreaterThan(0);
+    expect(result.summary.error).toBe(0);
+    expect(result.ok).toBe(true);
+    expect(runtime.status).toBe('passed');
+    expect(runtime.lastSuccess).toBe(result);
+  });
+
   it('returns an actionable error when no OpenAPI generator is mounted', async () => {
     const app = new Elysia().get('/users', () => [{ id: '1' }], {
       response: {
@@ -585,6 +621,62 @@ describe('createOpenApiLintRuntime', () => {
         console: false,
         jsonReportPath: '.',
         artifactWriteFailures: 'warn',
+      },
+      logger: {
+        info: () => {},
+        warn: (message) => warnings.push(message),
+        error: () => {},
+      },
+      failOn: 'error',
+    });
+
+    const result = await runtime.run(app);
+
+    expect(result.summary.error).toBe(0);
+    expect(runtime.status).toBe('passed');
+    expect(runtime.lastSuccess).toBe(result);
+    expect(
+      warnings.some((message) =>
+        message.includes('OpenAPI lint could not write JSON report:'),
+      ),
+    ).toBe(true);
+  });
+
+  it('defaults artifact write failures to warn mode', async () => {
+    const warnings: string[] = [];
+    const app = new Elysia()
+      .use(
+        openapi({
+          documentation: {
+            info: {
+              title: 'Runtime Default Artifact Warning API',
+              version: '1.0.0',
+            },
+            tags: [{ name: 'Users', description: 'User operations' }],
+          },
+        }),
+      )
+      .get('/users', () => [{ id: '1' }], {
+        response: {
+          200: t.Array(
+            t.Object({
+              id: t.String(),
+            }),
+          ),
+        },
+        detail: {
+          summary: 'List users',
+          description:
+            'Returns users for default artifact write warning testing.',
+          operationId: 'listUsersDefaultArtifactWarning',
+          tags: ['Users'],
+        },
+      });
+
+    const runtime = createOpenApiLintRuntime({
+      output: {
+        console: false,
+        jsonReportPath: '.',
       },
       logger: {
         info: () => {},

@@ -347,6 +347,8 @@ spectralPlugin({
 
 This is useful for local development and intentionally broken fixtures.
 
+`startup.mode: 'report'` relaxes threshold failures only. Missing OpenAPI routes, invalid spec JSON, broken rulesets, or artifact writes promoted to `output.artifactWriteFailures: 'error'` still surface as startup errors.
+
 ### Disable startup lint entirely
 
 Use `startup.mode: 'off'` when you only want manual or healthcheck-triggered runs.
@@ -360,6 +362,8 @@ spectralPlugin({
 ```
 
 `enabled: false` is still supported as a backwards-compatible way to disable startup lint.
+
+`startup.mode` takes precedence over the legacy `enabled` flag.
 
 ### Add a lint healthcheck endpoint
 
@@ -510,7 +514,10 @@ Custom sinks run after linting and can read:
 If you use the runtime programmatically, you can provide your own resolver pipeline to `loadRuleset` or `loadResolvedRuleset`.
 
 ```ts
-import { loadRuleset } from '@opsydyn/elysia-spectral/core'
+import {
+  defaultRulesetResolvers,
+  loadRuleset,
+} from '@opsydyn/elysia-spectral/core'
 
 const ruleset = await loadRuleset('virtual://team-ruleset', {
   resolvers: [
@@ -530,10 +537,13 @@ const ruleset = await loadRuleset('virtual://team-ruleset', {
               }
             }
           }
-        : undefined
+        : undefined,
+    ...defaultRulesetResolvers
   ]
 })
 ```
+
+`defaultRulesetResolvers` is a supported advanced export from `@opsydyn/elysia-spectral/core`. Prefer prepending your resolver and then spreading the defaults so built-in autodiscovery, path loading, and inline ruleset resolution continue to work.
 
 This is an advanced extension point. Most apps should continue using repo-level `spectral.*` files.
 
@@ -756,6 +766,26 @@ That example uses `startup.mode: 'report'`, so the app still boots while the pac
 
 ## Reference
 
+### Supported import surfaces
+
+Use `@opsydyn/elysia-spectral` for the primary stable consumer API:
+
+- `spectralPlugin`
+- `createOpenApiLintRuntime`
+- `recommended`, `server`, `strict`, and `presets`
+- `loadRuleset`, `loadResolvedRuleset`, and `lintOpenApi`
+- `shouldFail`, `enforceThreshold`, and the exported error classes
+
+Use `@opsydyn/elysia-spectral/core` for advanced composition details:
+
+- `defaultRulesetResolvers`
+- resolver pipeline types such as `RulesetResolver`, `RulesetResolverInput`, and `LoadResolvedRulesetOptions`
+- the same programmatic runtime helpers when you want an explicitly advanced import surface
+
+`defaultRulesetResolvers` is a supported extension hook. Prefer `[myResolver, ...defaultRulesetResolvers]` when extending the resolver pipeline instead of replacing the defaults outright.
+
+When used as a plugin, `app.store.openApiLint` is part of the supported plugin contract.
+
 ### Package API
 
 ```ts
@@ -805,7 +835,7 @@ type SpectralPluginOptions = {
    * Controls startup lint behaviour.
    * startup.mode takes precedence over the legacy enabled option.
    *   'enforce' — lint runs at startup and throws on threshold failure (default)
-   *   'report'  — lint runs at startup, prints findings, but never blocks boot
+    *   'report'  — lint runs at startup, prints findings, but does not block boot on threshold failures
    *   'off'     — startup lint is skipped entirely
    */
   startup?: {
@@ -892,6 +922,28 @@ type OpenApiLintRuntime = {
 
 function createOpenApiLintRuntime(options?: SpectralPluginOptions): OpenApiLintRuntime
 
+// ── Root utility exports ──────────────────────────────────────────────────────
+
+const presets: Record<PresetName, RulesetDefinition>
+
+function loadRuleset(
+  input?: string | RulesetDefinition | Record<string, unknown>,
+  baseDirOrOptions?: string | LoadResolvedRulesetOptions,
+): Promise<RulesetDefinition>
+
+function loadResolvedRuleset(
+  input?: string | RulesetDefinition | Record<string, unknown>,
+  baseDirOrOptions?: string | LoadResolvedRulesetOptions,
+): Promise<LoadedRuleset>
+
+function lintOpenApi(
+  spec: Record<string, unknown>,
+  ruleset: RulesetDefinition,
+): Promise<LintRunResult>
+
+function shouldFail(result: LintRunResult, threshold: SeverityThreshold): boolean
+function enforceThreshold(result: LintRunResult, threshold: SeverityThreshold): void
+
 // ── Extension points (advanced) ───────────────────────────────────────────────
 
 type SpectralLogger = {
@@ -913,8 +965,14 @@ type OpenApiLintSink = {
   ) => undefined | Partial<OpenApiLintArtifacts> | Promise<undefined | Partial<OpenApiLintArtifacts>>
 }
 
+type RulesetResolverInput =
+  | string
+  | RulesetDefinition
+  | Record<string, unknown>
+  | undefined
+
 type RulesetResolver = (
-  input: string | RulesetDefinition | Record<string, unknown> | undefined,
+  input: RulesetResolverInput,
   context: RulesetResolverContext,
 ) => Promise<ResolvedRulesetCandidate | undefined>
 
@@ -945,6 +1003,8 @@ type LoadResolvedRulesetOptions = {
   /** Override the base ruleset used for autodiscovery merging and the fallback when no ruleset is configured. */
   defaultRuleset?: RulesetDefinition
 }
+
+const defaultRulesetResolvers: RulesetResolver[]
 
 // ── Error classes ─────────────────────────────────────────────────────────────
 
@@ -998,7 +1058,7 @@ The runtime object exposes:
 - `lastFailure`: last thrown runtime error summary
 - `running`: boolean convenience flag
 
-When used as a plugin, the runtime is also available on `app.store.openApiLint`.
+When used as a plugin, the runtime is also available on `app.store.openApiLint` as part of the supported plugin contract.
 
 ### Healthcheck response shape
 
@@ -1043,9 +1103,12 @@ Example successful response:
 
 - startup mode `enforce` throws on threshold failures
 - startup mode `report` prints the same lint report but allows boot to continue on threshold failures
+- startup mode defaults to `enforce`
 - startup mode `off` skips startup lint
+- `failOn` defaults to `error`
 - missing OpenAPI generator / missing OpenAPI JSON route, bad `source.specPath`, or invalid spec JSON produces an actionable provider error
 - artifact writes warn by default and can be made fatal with `output.artifactWriteFailures: 'error'`
+- `enabled: false` remains a backwards-compatible alias for `startup.mode: 'off'`, and `startup.mode` takes precedence when both are provided
 
 ### Output model
 
@@ -1105,4 +1168,6 @@ Production-grade linting needs more than a pass/fail boolean. The runtime tracks
 
 ### Project status
 
-The package is published to npm and used in production. The current pre-`1.0` feature roadmap is functionally complete: startup/runtime flows, presets, output sinks, CI workflows, dashboard support, and self-describing result artifacts are all shipped. Remaining work is primarily `1.0` stabilization — public API/package boundaries, backwards-compatibility audit, and migration notes — tracked in [roadmap.md](../../roadmap.md).
+The package is published to npm and used in production. The current pre-`1.0` feature roadmap is functionally complete: startup/runtime flows, presets, output sinks, CI workflows, dashboard support, and self-describing result artifacts are all shipped. Remaining work is primarily final `1.0` release-readiness and package-boundary polish, tracked in [roadmap.md](../../roadmap.md).
+
+If you are upgrading from an early `v0.1`-style or other pre-`1.0` setup, see the published migration guide: [1.0 migration notes](../../docs/1.0-migration-notes.md).
