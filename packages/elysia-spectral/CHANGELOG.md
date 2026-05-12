@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.5.1](https://github.com/opsydyn/elysia-spectral/compare/v1.5.0...v1.5.1) (2026-05-12)
+
+
+### Bug Fixes
+
+* harden spectral import startup path ([024fedf](https://github.com/opsydyn/elysia-spectral/commit/024fedf7fe294fc7919f9d17d7727029e2a04fae))
+
 ## [1.5.0](https://github.com/opsydyn/elysia-spectral/compare/v1.4.0...v1.5.0) (2026-04-28)
 
 
