@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.5.2](https://github.com/opsydyn/elysia-spectral/compare/v1.5.1...v1.5.2) (2026-05-12)
+
+
+### Bug Fixes
+
+* complete self-describing lint reports ([b0917ce](https://github.com/opsydyn/elysia-spectral/commit/b0917ce4c977a1378ba851efc643058a70fea70b))
+
 ## [1.5.1](https://github.com/opsydyn/elysia-spectral/compare/v1.5.0...v1.5.1) (2026-05-12)
 
 
