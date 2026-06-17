@@ -51,7 +51,8 @@ const loadStoplightRuntimeBindings =
     const { oas } = spectralRulesets;
 
     return {
-      Spectral: (spectralCore.default?.Spectral ?? spectralCore.Spectral) as typeof import('@stoplight/spectral-core').Spectral,
+      Spectral: (spectralCore.default?.Spectral ??
+        spectralCore.Spectral) as typeof import('@stoplight/spectral-core').Spectral,
       extendsMap: {
         'spectral:oas': oas as unknown as RulesetDefinition,
       },
