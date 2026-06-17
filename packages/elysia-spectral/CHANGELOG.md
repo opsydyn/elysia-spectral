@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.5.4](https://github.com/opsydyn/elysia-spectral/compare/v1.5.3...v1.5.4) (2026-06-17)
+
+
+### Bug Fixes
+
+* **elysia-spectral:** apply biome formatting and use template literals ([7ca3507](https://github.com/opsydyn/elysia-spectral/commit/7ca350739e673a5b83d706f5c112bbf13a95c3a6))
+* **elysia-spectral:** resolve CJS-ESM interop for Spectral constructor in Node.js ([00107a2](https://github.com/opsydyn/elysia-spectral/commit/00107a288b8469433a52804ed63b223c1ac3cfa9))
+
 ## [1.5.3](https://github.com/opsydyn/elysia-spectral/compare/v1.5.2...v1.5.3) (2026-05-12)
 
 
